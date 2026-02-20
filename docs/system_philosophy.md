@@ -1,64 +1,73 @@
-# **Tartami — System Philosophy**
+# 🌍 **Tartami — System Philosophy**
 
-Tartami is a premium, Somali‑rooted, approval‑based auction platform built for trust, privacy, and cultural authenticity.  
-The system is intentionally **deterministic**, **database‑first**, and **financially strict**.  
-Nothing affecting money, fairness, or trust is ever left to the frontend.
+Tartami is a premium, Somali‑rooted, approval‑based auction platform built for **trust**, **privacy**, and **financial correctness**.  
+The system is intentionally **deterministic**, **database‑first**, and **strictly governed by invariants**.  
+Nothing affecting money, fairness, or identity is ever left to the frontend.
+
+Tartami behaves like a real auction house: predictable, auditable, and culturally authentic.
 
 ---
 
-# **What I Am Building**
+# **1. What Tartami Is**
 
-Tartami is not a marketplace.  
-It is a **curated auction house** built on:
+Tartami is **not** a marketplace.  
+It is a **curated auction house**, built on:
 
-- Controlled access  
-- Financial correctness  
-- Identity protection  
-- Administrative accountability  
-- Cultural authenticity  
-- Deterministic behavior  
-- Database‑first truth  
+- controlled access  
+- financial integrity  
+- identity protection  
+- administrative accountability  
+- Somali cultural expectations  
+- deterministic behavior  
+- Postgres‑first truth  
 
 If something affects money or fairness, it **must** live in the database.
 
 ---
 
-# **Five Pillars of the System**
+# **2. Core Principles**
 
-## **1. Trust**
-Every rule must be predictable, explainable, and enforceable.
-
-## **2. Privacy**
-Identity masking is a first‑class feature, not an afterthought.
-
-## **3. Financial Integrity**
-All financial data is append‑only and immutable.
-
-## **4. Cultural Authenticity**
-The system reflects Somali auction norms: fairness, clarity, and respect.
-
-## **5. Determinism**
-The database is the single source of truth.  
-If I ever feel tempted to “just handle it in the UI,” I stop.
+These principles guide every module, every RPC, every policy, and every decision.
 
 ---
 
-# **Core System Invariants (Non‑Negotiable Rules)**
+## **1. Trust**
+Rules must be predictable, explainable, and enforced by the database — not the UI.
 
-These rules cannot be broken under any circumstances.
+## **2. Privacy**
+Identity masking is a first‑class feature.  
+Users control their visibility; admins always see truth.
+
+## **3. Financial Integrity**
+All financial data is **append‑only**, **immutable**, and **transaction‑wrapped**.
+
+## **4. Cultural Authenticity**
+The system reflects Somali auction norms:  
+fairness, clarity, respect, and competitive spirit.
+
+## **5. Determinism**
+The database is the single source of truth.  
+If logic is important, it belongs in Postgres.
+
+---
+
+# **3. System Invariants (Non‑Negotiable Rules)**
+
+These rules **cannot be broken** under any circumstances.  
+They define Tartami’s identity and protect its integrity.
 
 ---
 
 ## **Financial Invariants**
 - Hammer price = highest valid bid at auction close  
-- Hammer price cannot change after auction ends  
+- Hammer price is immutable after auction ends  
 - All financial amounts are immutable  
 - Invoices are append‑only  
 - Payments are append‑only  
-- Adjustments are additive rows, never edits  
+- Adjustments are additive rows  
 - No deletion of financial records  
-- No modification of hammer prices  
-- No modification of invoice totals after creation  
+- No modification of invoice totals  
+- No modification of payout amounts  
 
 ---
 
@@ -66,10 +75,11 @@ These rules cannot be broken under any circumstances.
 - Bids are increment‑only  
 - No self‑bidding  
 - Only approved bidders may bid  
-- Auction statuses flow forward only:  
+- Statuses flow forward only:  
   `draft → scheduled → live → ended → settled`  
 - Ended auctions cannot reopen  
 - Soft‑close extensions cannot be reversed  
+- Auction cannot be edited once live  
 
 ---
 
@@ -77,7 +87,7 @@ These rules cannot be broken under any circumstances.
 - Admin sees full identity  
 - Consignors see masked bidders  
 - Bidders see masked competitors  
-- Masking is stable within an auction  
+- Masking is stable per auction  
 - Masking differs between auctions  
 - Masking preference is user‑controlled  
 
@@ -92,21 +102,22 @@ These rules cannot be broken under any circumstances.
 ---
 
 ## **Administrative Invariants**
-- Admin actions are logged  
+- All admin actions are logged  
 - Admin cannot bypass financial logic  
 - Admin cannot delete financial records  
 - Admin cannot modify hammer prices  
 - Admin cannot override RLS boundaries  
+- Admin is powerful — but **bounded**  
 
 ---
 
-# **Roles**
+# **4. Roles**
 
 ## **Bidder**
 - Must be approved  
 - Can bid  
 - Can view own invoices  
-- Can toggle masking preference  
+- Can toggle masking  
 
 ## **Consignor**
 - Submits items  
@@ -118,47 +129,46 @@ These rules cannot be broken under any circumstances.
 - Approves item submissions  
 - Creates auctions  
 - Records payments  
-- Adds financial adjustments  
+- Adds adjustments  
 - Cancels unpaid invoices  
+- Marks payouts as paid  
 - Cannot modify hammer prices  
 - Cannot delete financial records  
 - Cannot bypass settlement logic  
 
-Admin is powerful — but **bounded**.
-
 ---
 
-# **Architecture**
+# **5. Architecture Philosophy**
 
 ## **Stack**
 - Next.js (App Router)  
 - Supabase (Auth + Postgres + RLS + Realtime)  
 - Vercel (Hosting)
 
-## **Logic Distribution**
+---
 
-### **Database handles:**
-- Bid validation  
-- Increment enforcement  
-- Soft‑close logic  
-- Invoice generation  
-- Settlement logic  
-- Financial calculations  
+## **Database Handles**
+- bid validation  
+- increment enforcement  
+- soft‑close logic  
+- invoice generation  
+- settlement logic  
+- financial calculations  
 - RLS enforcement  
-- Audit logging  
-- Notification triggers  
+- audit logging  
+- notification triggers  
 
-### **Frontend handles:**
-- Rendering  
-- Forms  
-- Navigation  
-- Realtime display  
+## **Frontend Handles**
+- rendering  
+- forms  
+- navigation  
+- realtime display  
 
 **Frontend never determines truth.**
 
 ---
 
-# **Auction Engine**
+# **6. Auction Engine Philosophy**
 
 ## **Statuses**
 - draft  
@@ -169,156 +179,116 @@ Admin is powerful — but **bounded**.
 
 ## **Rules**
 - Only admins create auctions  
-- Each auction defines:
-  - commission rate  
-  - start time  
-  - end time  
-  - soft‑close behavior  
+- Commission rate locked once live  
 - Items assigned after approval  
 - Auction cannot be edited once live  
 - Auction cannot be reopened once ended  
 
 ---
 
-# **Bidding Engine**
+# **7. Bidding Engine Philosophy**
 
 ## **Rules**
-- Increment‑only bidding  
-- No self‑bidding  
-- Approved users only  
-- Soft‑close enabled  
+- increment‑only  
+- no self‑bidding  
+- approved users only  
+- soft‑close enabled  
 - DB‑validated transactions  
-- Realtime is optional, not authoritative  
+- realtime optional, not authoritative  
 
 ## **Soft Close**
-- Default extension window: 2 minutes  
-- If a valid bid occurs within final 2 minutes → extend by 2 minutes  
-- Maximum extension cap: initially unlimited  
+- default window: 2 minutes  
+- bid inside window → extend by 2 minutes  
+- no maximum extension cap (initially)  
 
 ## **Simultaneous Bids**
-- Resolved inside DB transaction  
-- Highest valid committed bid wins  
-- No frontend race handling  
+- resolved inside DB transaction  
+- highest valid committed bid wins  
 
 ---
 
-# **Identity Masking**
+# **8. Identity Masking Philosophy**
 
-- Users can toggle “Mask Identity”  
-- Masking is stable per auction  
-- Masking differs between auctions  
-- Admin always sees real identity  
-- Consignors always see masked identity  
-- Masking enhances trust without chaos  
-
----
-
-# **Invoice System**
-
-## **Rules**
-- One invoice per auction per bidder  
-- Multiple wins → single invoice with multiple line items  
-- Invoice generation runs when auction transitions from live → ended  
-- Implemented as an idempotent DB function  
-
-## **Requirements**
-- Idempotent  
-- Transaction‑wrapped  
-- Prevent duplicate invoices  
-- Frontend does not generate invoices  
+- user‑controlled  
+- stable per auction  
+- different across auctions  
+- admin always sees real identity  
+- consignor always sees masked identity  
+- masking enhances trust without chaos  
 
 ---
 
-# **Adjustments**
+# **9. Invoice Philosophy**
 
-- Invoices are immutable  
-- Corrections are additive adjustments  
-- Example: item invalidated → negative adjustment  
-- Audit log records adjustment  
-- No editing or deleting original line items  
+- one invoice per bidder per auction  
+- multiple wins → single invoice  
+- generated when auction ends  
+- implemented as idempotent RPC  
+- frontend never generates invoices  
 
 ---
 
-# **Payment System**
+# **10. Adjustments Philosophy**
 
-- Payments are offline  
-- Admin records payment manually  
-- Invoice marked paid when:  
+- invoices are immutable  
+- corrections = additive adjustments  
+- negative adjustments allowed  
+- audit logs required  
+
+---
+
+# **11. Payment Philosophy**
+
+- offline only  
+- admin‑recorded  
+- invoice paid when:  
   `sum(payments) ≥ invoice.total`  
-- Wrong payment → reversal entry  
-- No deletion allowed  
+- wrong payment → reversal entry  
+- no deletion allowed  
 
 ---
 
-# **Settlement Logic**
+# **12. Settlement Philosophy**
 
-- Settlement is per invoice  
-- Conditions:
-  - Invoice paid  
-  - No disputes pending  
-- If bidder disappears:
-  - Admin cancels invoice  
-  - Item moves to next auction  
-  - Items held max 7 days  
-- Settlement never blocked by unrelated invoices  
+- settlement is per invoice  
+- invoice must be fully paid  
+- cancelled invoices must log a reason  
+- payout amounts immutable  
+- admin cannot modify payouts  
 
 ---
 
-# **Failure & Recovery Plan**
+# **13. Failure & Recovery Philosophy**
 
-### **If bid RPC fails**
-- User retries  
-- No record created  
-- DB is authority  
-
-### **If realtime disconnects**
-- UI reconnects  
-- Data re-fetched  
-
-### **If auction end time passes but status not updated**
-- Scheduled DB function updates status  
-
-### **If invoice generation runs twice**
-- Function detects existing invoices  
-- Must be idempotent  
-
-### **If admin marks wrong invoice paid**
-- Reversal entry added  
-- Audit log records it  
+- bid RPC failure → retry safe  
+- realtime failure → UI re-fetch  
+- auction status fallback → scheduled DB job  
+- invoice generation → idempotent  
+- wrong payment → reversal entry  
+- admin mistakes → logged, never hidden  
 
 ---
 
-# **Security & RLS**
+# **14. Security & RLS Philosophy**
 
-- All tables have RLS enabled  
-- Default: no access  
-
-### **Users**
-- Can read/write only allowed rows  
-
-### **Admins**
-- Access bounded by app role  
-- Cannot bypass RLS  
-- Cannot impersonate users  
-
-### **Audit logs required for:**
-- Invoice adjustments  
-- Payment recordings  
-- Invoice cancellations  
-- Auction status changes  
-- Admin approvals  
+- RLS enabled on all tables  
+- default deny  
+- explicit allow  
+- admin cannot bypass RLS  
+- admin cannot impersonate users  
+- audit logs required for all sensitive actions  
 
 Production DB must not expose superuser role.
 
 ---
 
-# **Build Order**
+# **15. Build Order**
 
 1. Auth + user_profiles + RLS  
 2. Auctions + items  
-3. Bidding RPC (strict DB logic)  
-4. Soft close logic  
-5. Invoice generation function  
+3. Bidding RPC  
+4. Soft‑close logic  
+5. Invoice generation  
 6. Payment system  
 7. Settlement system  
 8. Masking system  
@@ -330,32 +300,32 @@ Production DB must not expose superuser role.
 
 ---
 
-# **Known Unknowns**
+# **16. Known Unknowns**
 
-- 2 min vs 5 min soft close  
-- Unlimited vs capped extensions  
-- Psychological effect of masking  
-- Real‑world invoice cancellation frequency  
-- Performance under high bid volume  
+- soft‑close window tuning  
+- extension cap behavior  
+- masking psychology  
+- invoice cancellation frequency  
+- high‑volume bidding performance  
 
-These will be tested with real usage before overengineering.
+These will be validated with real usage.
 
 ---
 
-# **Final Internal Note**
+# **17. Final Internal Note**
 
-This system is serious.  
+Tartami is a serious system.  
 If I enforce:
 
 - DB‑first financial logic  
-- Idempotent invoice creation  
-- Append‑only financial records  
-- Clear admin boundaries  
-- Strict invariants  
+- idempotent invoice creation  
+- append‑only financial records  
+- strict admin boundaries  
+- clear invariants  
 
-Then Tartami will be stable.
+Then Tartami will be stable, trustworthy, and premium.
 
-If I cut corners in those areas, it will break under real usage.
+If I cut corners, it will break under real usage.
 
 **Build it correctly the first time.**
 
