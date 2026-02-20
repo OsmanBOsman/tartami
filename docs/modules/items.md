@@ -1,129 +1,206 @@
-# 📦 **Items & Submissions Module**
+# **Items Module**
 
-The Items & Submissions module defines how consignors submit items, how admins approve them, and how items enter auctions.  
-This module sits between **Users** and **Auctions**, and is required before bidding can exist.
-
----
-
-## 🗄️ **Tables**
-
-### **1. item_submissions**
-Raw submissions from consignors.
-
-Fields include:
-
-- `id`
-- `user_id` (consignor)
-- `title`
-- `description`
-- `images`
-- `category`
-- `reserve_price` (optional, but Tartami uses *starting_bid* only — no reserves)
-- `status` (pending, approved, rejected)
-- `admin_id` (who approved/rejected)
-- `created_at`
-- `updated_at`
-
-### **2. items**
-Approved items ready for auction assignment.
-
-Fields include:
-
-- `id`
-- `submission_id`
-- `consignor_id`
-- `auction_id` (nullable until assigned)
-- `title`
-- `description`
-- `images`
-- `starting_bid`
-- `status` (approved, assigned, sold, unsold)
-- `created_at`
-- `updated_at`
+This module defines how items are submitted, approved, assigned to auctions, displayed to bidders, and settled for consignors.  
+Tartami uses **item‑level consignors only** — never auction‑level consignors — and **does not support reserve prices**.  
+Every item must have a **starting_bid**, and bidding is increment‑only.
 
 ---
 
-## 🔄 **Flow**
+# **1. Table Definitions**
 
-### **1. User submits item**
-- Form at `/submissions/new`
-- Creates a row in `item_submissions`
-- Status = `pending`
-- Admin notified
+## **items**
+Stores all approved items that can be assigned to auctions.
 
-### **2. Admin approves**
-- Admin reviews submission in `/admin/submissions`
-- Approves or rejects
-- If approved:
-  - A new row is created in `items`
-  - `item_submissions.status = approved`
-
-### **3. Admin assigns item to auction**
-- Admin selects an auction
-- Assigns item to that auction
-- Item becomes visible on `/auctions/[id]`
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | uuid (PK) | Item ID |
+| `consignor_id` | uuid (FK → user_profiles.id) | Owner of the item |
+| `auction_id` | uuid (FK → auctions.id, nullable) | Assigned auction |
+| `title` | text | Item title |
+| `description` | text | Full description |
+| `starting_bid` | numeric | Required. Tartami uses starting_bid only — **no reserves** |
+| `images` | text[] | Array of image URLs |
+| `status` | enum(`pending`, `approved`, `rejected`) | Admin‑controlled |
+| `created_at` | timestamptz | Submission timestamp |
+| `updated_at` | timestamptz | Auto‑updated |
 
 ---
 
-## 🧭 **Pages**
+## **item_submissions**
+Raw submissions before admin approval.
 
-### **/submissions/new**
-- Consignor submits item  
-- Upload images  
-- Provide details  
-- See submission status  
-
-### **/admin/submissions**
-- Admin reviews pending submissions  
-- Approves or rejects  
-- Views submission history  
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | uuid (PK) | Submission ID |
+| `user_id` | uuid (FK → user_profiles.id) | Consignor submitting |
+| `title` | text | Proposed title |
+| `description` | text | Proposed description |
+| `starting_bid` | numeric | Required |
+| `images` | text[] | Uploaded images |
+| `status` | enum(`pending`, `approved`, `rejected`) | Admin review state |
+| `admin_note` | text | Reason for rejection |
+| `created_at` | timestamptz | Timestamp |
 
 ---
 
-## 🔐 **RLS Rules**
+# **2. Workflow**
 
-### **Consignor**
-- `select` their own submissions  
-- `insert` new submissions  
-- `select` their own items  
-- Cannot modify items after approval  
-- Cannot assign items to auctions  
+## **A. Submission Flow**
+1. Consignor submits item via `/submissions/new`
+2. Item enters `item_submissions` with status `pending`
+3. Admin reviews submission:
+   - Approve → moves to `items` table
+   - Reject → stays in submissions with `admin_note`
+4. Approved items can be assigned to auctions
+
+---
+
+## **B. Auction Assignment**
+- Admin assigns approved items to an auction  
+- Items cannot be assigned if:
+  - status ≠ `approved`
+  - auction is `live` or `ended`
+- Items can be unassigned only while auction is `draft` or `scheduled`
+
+---
+
+## **C. Visibility Rules**
+- Public sees items only for:
+  - scheduled auctions  
+  - live auctions  
+  - ended auctions  
+- Consignors see:
+  - all their own items  
+  - masked bidding activity  
+- Admin sees everything
+
+---
+
+# **3. RLS Rules**
+
+## **items**
 
 ### **Public**
-- Can `select` items only after they are assigned to a visible auction  
+- `select` items for visible auctions (scheduled, live, ended)
+
+### **Consignor**
+- `select` items they own  
+- Cannot update after approval  
+- Cannot assign to auctions  
 
 ### **Admin**
-- Full read/write on:
-  - `item_submissions`
-  - `items`
-- Cannot delete items  
-- Cannot modify financial fields after auction ends  
+- Full read/write  
+- Approves submissions  
+- Assigns items to auctions  
 
 ---
 
-## 🧱 **Module Dependencies**
+## **item_submissions**
 
-### **Depends on:**
-- Users & Auth (for consignor identity)
-- Admin role (for approvals)
+### **Consignor**
+- `insert` new submissions  
+- `select` their own submissions  
+- Cannot approve or reject  
+- Cannot modify after approval  
 
-### **Required before:**
-- Auctions module  
-- Bidding module  
-- Invoices module  
+### **Admin**
+- Full read/write  
+- Approves or rejects submissions  
+- Moves approved submissions into `items`  
 
-Because items must exist and be approved before they can be auctioned or bid on.
+---
+
+# **4. Admin Tools**
+
+### `/admin/submissions`
+- View pending submissions  
+- Approve / reject  
+- Add admin notes  
+
+### `/admin/items`
+- View all items  
+- Assign items to auctions  
+- Unassign (only if auction not live)  
 
 ---
 
-## 🛠 **Implementation Notes**
+# **5. UI Pages**
 
-- Use a server action for item submission  
-- Use admin‑only server actions for approvals  
-- Use a clean separation:
-  - `item_submissions` = raw, editable  
-  - `items` = approved, immutable except auction assignment  
-- Add triggers to sync submission → item creation  
-- Add audit logs for admin approvals  
+### `/submissions/new`
+- Form for consignors  
+- Upload images  
+- Enter title, description, starting_bid  
+
+### `/items/[id]`
+- Public item detail page  
+- Shows:
+  - title  
+  - description  
+  - starting_bid  
+  - images  
+  - bidding history (masked)  
+  - current price  
+
+### `/admin/items`
+- Admin list view  
+- Filters: pending, approved, assigned, unassigned  
 
 ---
+
+# **6. Invariants**
+
+These rules cannot be broken:
+
+### **Item Invariants**
+- No reserve prices — **starting_bid only**  
+- Items belong to a single consignor  
+- Items cannot be edited after approval  
+- Items cannot be assigned to a live or ended auction  
+- Items cannot be deleted once bidding has occurred  
+
+### **Auction Invariants**
+- Items must be approved before assignment  
+- Items cannot move between auctions once bidding starts  
+
+### **Identity Invariants**
+- Consignors see masked bidders  
+- Admin sees full identity  
+- Public sees masked identities  
+
+---
+
+# **7. Settlement Logic (Item‑Level)**
+
+After auction ends:
+
+1. Winning bid becomes hammer price  
+2. Item contributes a line item to the bidder’s invoice  
+3. After invoice is fully paid:
+   - Item contributes to consignor payout  
+4. Payout amounts are immutable once created  
+
+---
+
+# **8. Failure & Recovery**
+
+### If item submission fails:
+- User retries  
+- No partial records  
+
+### If admin approves twice:
+- Idempotent logic prevents duplicates  
+
+### If auction assignment fails:
+- Item remains unassigned  
+- No partial state  
+
+---
+
+# **Final Note**
+
+This module is the backbone of Tartami’s item‑level consignor model.  
+It enforces transparency, fairness, and cultural authenticity by eliminating reserve prices and ensuring every item follows a predictable, auditable lifecycle.
+
+---engine.
+
+If you want, I can now regenerate **any other module** to match this level of polish.
