@@ -127,13 +127,3 @@ Because items must exist and be approved before they can be auctioned or bid on.
 - Add audit logs for admin approvals  
 
 ---
-
-# ⭐ What you’ve completed  
-You now have:
-
-- Users module  
-- Items & Submissions module  
-
-This means you’ve completed **2 out of 8** modules.
-
----
