@@ -2,103 +2,161 @@
 
 The Admin Module provides the operational backbone of Tartami.  
 Admins have elevated capabilities but remain **strictly bounded** by RLS, financial invariants, and audit logging.  
-This module ties together all other modules into a unified control panel.
+This module ties together all other modules into a unified, controlled, and auditable system.
+
+Admins can **never** bypass database logic, financial rules, or settlement constraints.
 
 ---
 
-## 🗄️ **Tools & Capabilities**
+# **1. Capabilities**
 
-### **1. User Management**
+## **1. User Management**
+Admins can:
 - Approve bidders  
 - Promote/demote admins  
 - View user profiles  
-- View masking preference  
+- View masking labels (UI‑level only)  
 - View user activity (future)  
 
-### **2. Auction Management**
+Admins cannot:
+- Impersonate users  
+- Modify user financial data  
+- Bypass approval rules  
+
+---
+
+## **2. Auction Management**
+Admins can:
 - Create auctions  
 - Edit draft/scheduled auctions  
 - Assign items to auctions  
 - View auction performance  
-- Cannot reopen ended auctions  
-- Cannot modify hammer prices  
 
-### **3. Item Submissions**
+Admins cannot:
+- Reopen ended auctions  
+- Modify hammer prices  
+- Change commission rate once auction is live  
+- Remove items from live auctions  
+
+---
+
+## **3. Item Submissions**
+Admins can:
 - Review pending submissions  
 - Approve or reject  
 - Convert submissions → items  
 - Assign items to auctions  
 
-### **4. Invoices**
+Admins cannot:
+- Edit consignor ownership  
+- Modify item starting_bid after approval  
+
+---
+
+## **4. Invoices**
+Admins can:
 - View all invoices  
 - Record offline payments  
 - Add adjustments (append‑only)  
 - Cancel unpaid invoices  
-- Cannot delete invoices  
-- Cannot delete payments  
 
-### **5. Payouts**
-- Run settlement  
-- View consignor payouts  
-- Mark payouts as paid  
-- Cannot modify payout amounts  
-
-### **6. Audit Logs**
-- View all admin actions  
-- Filter by user, action, date  
-- Immutable record of system activity  
+Admins cannot:
+- Delete invoices  
+- Delete payments  
+- Modify invoice totals  
+- Mark invoices as paid manually (only payments determine status)  
 
 ---
 
-## 🧭 **Pages**
+## **5. Payouts**
+Admins can:
+- Run settlement  
+- View consignor payouts  
+- Mark payouts as paid  
 
-### **/admin**
+Admins cannot:
+- Modify payout amounts  
+- Delete payouts  
+- Settle auctions early  
+- Override settlement logic  
+
+---
+
+## **6. Audit Logs**
+Admins can:
+- View all admin actions  
+- Filter by user, action, date  
+
+Audit logs are:
+- Immutable  
+- Append‑only  
+- Required for every sensitive action  
+
+---
+
+# **2. Admin Pages**
+
+## **/admin**
 - Overview dashboard  
 - Quick stats  
 - Pending approvals  
 - Upcoming auctions  
 
-### **/admin/users**
+---
+
+## **/admin/users**
 - User list  
 - Approvals  
 - Admin promotions  
 - Profile details  
 
-### **/admin/auctions**
+---
+
+## **/admin/auctions**
 - Create/edit auctions  
 - Assign items  
 - View auction status  
 
-### **/admin/items**
+---
+
+## **/admin/items**
 - View approved items  
 - Assign to auctions  
 - Filter by consignor  
 
-### **/admin/submissions**
+---
+
+## **/admin/submissions**
 - Review pending submissions  
 - Approve/reject  
 - View submission history  
 
-### **/admin/invoices**
+---
+
+## **/admin/invoices**
 - View all invoices  
 - Record payments  
 - Add adjustments  
 - Cancel unpaid invoices  
 
-### **/admin/payouts**
+---
+
+## **/admin/payouts**
 - View consignor payouts  
 - Mark payouts as paid  
 
-### **/admin/logs**
+---
+
+## **/admin/logs**
 - Full audit log  
 - Filter by action type  
 - Filter by admin  
 
 ---
 
-## 🔐 **Rules & Boundaries**
+# **3. Rules & Boundaries**
 
-### **1. All Admin Actions Are Logged**
+## **1. All Admin Actions Are Logged**
 Every sensitive action writes to `audit_logs`, including:
 
 - approvals  
@@ -109,31 +167,49 @@ Every sensitive action writes to `audit_logs`, including:
 - auction status changes  
 - settlement actions  
 
-### **2. Admins Cannot Bypass Payout Logic**
-- Cannot modify payout amounts  
-- Cannot delete payouts  
-- Cannot settle auctions early  
-- Cannot override invoice totals  
-
-### **3. Admins Cannot Delete Financial Records**
-- No deleting invoices  
-- No deleting payments  
-- No deleting bids  
-- No deleting payouts  
-- No editing hammer prices  
-
-### **4. Admins Cannot Bypass RLS**
-- Admins have elevated access  
-- But still bound by:
-  - financial invariants  
-  - settlement rules  
-  - masking rules (UI-level)  
+Audit logs are immutable and append‑only.
 
 ---
 
-## 🧱 **Module Dependencies**
+## **2. Admins Cannot Bypass Payout Logic**
+Admins cannot:
+- modify payout amounts  
+- delete payouts  
+- settle auctions early  
+- override invoice totals  
+- mark payouts as paid without audit logging  
 
-### **Depends on:**
+---
+
+## **3. Admins Cannot Delete Financial Records**
+Admins cannot delete:
+- invoices  
+- payments  
+- bids  
+- payouts  
+
+Admins cannot edit:
+- hammer prices  
+- invoice totals  
+- payout amounts  
+
+---
+
+## **4. Admins Cannot Bypass RLS**
+Admins have elevated access but remain bound by:
+
+- financial invariants  
+- settlement rules  
+- masking rules (UI‑level)  
+- append‑only financial model  
+
+Admins cannot impersonate users or access private bidder identities outside admin‑approved contexts.
+
+---
+
+# **4. Module Dependencies**
+
+## **Depends on:**
 - Users  
 - Items  
 - Auctions  
@@ -143,19 +219,20 @@ Every sensitive action writes to `audit_logs`, including:
 - Payouts  
 - Notifications  
 
-### **Required before:**
+## **Required before:**
 - Production hardening  
 - Realtime polish  
 - Admin analytics (future)  
 
 ---
 
-## 🛠 **Implementation Notes**
+# **5. Implementation Notes**
 
 - Use server actions for all admin operations  
 - All admin actions must write to `audit_logs`  
 - Admin UI must never expose masked identities incorrectly  
 - Admin cannot impersonate users  
 - Admin cannot bypass DB logic  
+- All financial actions must be append‑only and idempotent  
 
 ---
