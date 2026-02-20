@@ -111,4 +111,3 @@ This handbook is versioned alongside the codebase.
 Any change to the system philosophy requires explicit justification and approval.
 
 ---
-
