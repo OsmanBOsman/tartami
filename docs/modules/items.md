@@ -200,7 +200,3 @@ After auction ends:
 
 This module is the backbone of Tartami’s item‑level consignor model.  
 It enforces transparency, fairness, and cultural authenticity by eliminating reserve prices and ensuring every item follows a predictable, auditable lifecycle.
-
----engine.
-
-If you want, I can now regenerate **any other module** to match this level of polish.
