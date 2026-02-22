@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { createClient } from "@/lib/supabase/server";
 import ProfileForm from "./profile-form";
 
@@ -8,7 +10,6 @@ export default async function ProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Fetch the user's profile row
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("*")
