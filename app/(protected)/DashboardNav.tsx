@@ -9,10 +9,9 @@ export default function DashboardNav() {
   const links = [
     { href: "/app", label: "Dashboard" },
     { href: "/app/account", label: "My Account" },
-    // Future sections:
-    // { href: "/app/bids", label: "My Bids" },
-    // { href: "/app/items", label: "My Items" },
-  ];
+    { href: "/app/bids", label: "My Bids" },
+    { href: "/app/items", label: "My Items" },
+  ];  
 
   return (
     <nav className="border-b bg-white">
