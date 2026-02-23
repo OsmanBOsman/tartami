@@ -46,33 +46,49 @@ Raw submissions before admin approval.
 # **2. Workflow**
 
 ## **A. Submission Flow**
-1. Consignor submits item via `/submissions/new`
-2. Item enters `item_submissions` with status `pending`
-3. Admin reviews submission:
-   - Approve → moves to `items` table
-   - Reject → stays in submissions with `admin_note`
-4. Approved items can be assigned to auctions
+1. Consignor submits item via `/submissions/new`  
+2. Item enters `item_submissions` with status `pending`  
+3. Admin reviews submission:  
+   - Approve → moves to `items` table  
+   - Reject → stays in submissions with `admin_note`  
+4. Approved items can be assigned to auctions  
 
 ---
 
 ## **B. Auction Assignment**
 - Admin assigns approved items to an auction  
-- Items cannot be assigned if:
-  - status ≠ `approved`
-  - auction is `live` or `ended`
-- Items can be unassigned only while auction is `draft` or `scheduled`
+- Items cannot be assigned if:  
+  - status ≠ `approved`  
+  - auction is `live` or `ended`  
+- Items can be unassigned only while auction is `draft` or `scheduled`  
 
 ---
 
 ## **C. Visibility Rules**
-- Public sees items only for:
+### **Public**
+- Sees items only for:  
   - scheduled auctions  
   - live auctions  
   - ended auctions  
-- Consignors see:
+- Sees:  
+  - title  
+  - description  
+  - images  
+  - starting_bid  
+  - current price  
+  - **bidding history (username + amount + timestamp)**
+
+### **Consignor**
+- Sees:  
   - all their own items  
-  - masked bidding activity  
-- Admin sees everything
+  - full bidding history on their items  
+  - **bidder usernames** (never masked)  
+  - hammer prices  
+  - settlement status  
+
+### **Admin**
+- Sees everything  
+- Can view bidder full names only in admin tools (never in public UI)
 
 ---
 
@@ -133,12 +149,12 @@ Raw submissions before admin approval.
 
 ### `/items/[id]`
 - Public item detail page  
-- Shows:
+- Shows:  
   - title  
   - description  
   - starting_bid  
   - images  
-  - bidding history (masked)  
+  - **bidding history (username only)**  
   - current price  
 
 ### `/admin/items`
@@ -163,9 +179,10 @@ These rules cannot be broken:
 - Items cannot move between auctions once bidding starts  
 
 ### **Identity Invariants**
-- Consignors see masked bidders  
-- Admin sees full identity  
-- Public sees masked identities  
+- **Public sees bidder usernames**  
+- **Consignors see bidder usernames**  
+- **Admins see bidder usernames + full names in admin tools**  
+- **No masking, aliasing, or anonymization exists anywhere**  
 
 ---
 
@@ -175,7 +192,7 @@ After auction ends:
 
 1. Winning bid becomes hammer price  
 2. Item contributes a line item to the bidder’s invoice  
-3. After invoice is fully paid:
+3. After invoice is fully paid:  
    - Item contributes to consignor payout  
 4. Payout amounts are immutable once created  
 
@@ -200,3 +217,5 @@ After auction ends:
 
 This module is the backbone of Tartami’s item‑level consignor model.  
 It enforces transparency, fairness, and cultural authenticity by eliminating reserve prices and ensuring every item follows a predictable, auditable lifecycle.
+
+---
