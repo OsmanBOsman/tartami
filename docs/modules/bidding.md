@@ -21,7 +21,6 @@ Stores every bid placed on an item.
 | `amount` | numeric | Bid amount (increment‑only) |
 | `created_at` | timestamptz | Timestamp |
 | `is_valid` | boolean | Future: invalidation audits |
-| `masked_label` | text | Stable masked identity per auction |
 
 **Notes:**
 - No updates or deletes allowed  
@@ -36,7 +35,7 @@ Stores every bid placed on an item.
 - No auto‑bids  
 - No custom amounts  
 - All increments enforced by DB logic  
-- Increments come from the **increment table** defined in your system  
+- Increments come from the **increment table**  
 - Validation happens inside `place_bid` RPC  
 
 ---
@@ -70,7 +69,7 @@ Where:
 Rules:
 - Extensions run **inside the same DB transaction**  
 - Extensions must be **atomic**  
-- Extensions must be **idempotent** (safe to run multiple times without duplicating the extension)  
+- Extensions must be **idempotent**  
 - Extensions must be **logged**  
 - No maximum extension cap (for now)  
 
@@ -112,7 +111,7 @@ If valid:
 
 ## **B. UI Updates**
 - Realtime updates bid list  
-- Masked identities shown  
+- **Bidder usernames shown**  
 - Countdown updates  
 - If realtime fails → UI re-fetches  
 
@@ -138,13 +137,14 @@ These rules **cannot be broken**.
 
 ### **Soft‑Close Invariants**
 - Extensions must be atomic  
-- Extensions must be idempotent (never extend twice for the same bid)  
+- Extensions must be idempotent  
 - Extensions cannot be reversed  
 
 ### **Identity Invariants**
-- Public sees masked bidder identities  
-- Consignors see masked identities  
-- Admin sees full identities  
+- **Public sees bidder usernames**  
+- **Consignors see bidder usernames**  
+- **Admins see bidder usernames + full names in admin tools**  
+- **No masking, aliasing, or anonymization exists anywhere**  
 
 ### **Data Invariants**
 - Bids are append‑only  
@@ -164,21 +164,21 @@ Allowed:
   - increment is valid  
   - user is not consignor  
 
-- `select` masked bids for visible auctions  
+- `select` bids for visible auctions (username only)  
 
 ---
 
 ## **Consignor**
 Allowed:
-- `select` masked bids on their own items  
-- Never sees bidder identity  
+- `select` all bids on their own items  
+- Always sees **bidder usernames**  
 
 ---
 
 ## **Admin**
 Allowed:
 - `select` all bids  
-- Full identity access  
+- Can view bidder full names in admin tools  
 
 Not allowed:
 - modifying bids  
@@ -196,7 +196,7 @@ Not allowed:
 
 ### **/auctions/[id]/items/[itemId]**
 - Item detail  
-- Bid history (masked)  
+- Bid history (**username only**)  
 - Bid input  
 - Realtime updates  
 - Soft‑close countdown  
@@ -238,7 +238,7 @@ Not allowed:
 # **8. Module Dependencies**
 
 ### **Depends on:**
-- Users (approval + identity)  
+- Users (approval + username identity)  
 - Items (ownership)  
 - Auctions (status + soft‑close)  
 
@@ -259,8 +259,8 @@ Because bidding determines:
 - `place_bid` RPC must be **transaction‑wrapped**  
 - Soft‑close logic must run inside the same transaction  
 - Realtime is optional; DB is the authority  
-- Masking label generated per auction per user  
-- Admin view must never expose masked identities  
+- **No masking or alias generation exists anywhere**  
+- Admin view must never modify bids  
 - No manual overrides for bids  
 
 ---
