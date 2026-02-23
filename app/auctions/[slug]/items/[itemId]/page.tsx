@@ -1,4 +1,5 @@
 import { ItemBiddingPanel } from './ItemBiddingPanel'
+import { BidHistoryPanel } from './BidHistoryPanel'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function ItemPage({
@@ -17,6 +18,8 @@ export default async function ItemPage({
     <div>
       <h1>Item {params.itemId}</h1>
       <ItemBiddingPanel itemId={params.itemId} userId={user?.id} />
+
+      <BidHistoryPanel itemId={params.itemId} />
     </div>
   )
 }
