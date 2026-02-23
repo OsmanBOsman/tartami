@@ -1,6 +1,6 @@
 # 👤 **Users & Auth Module**
 
-The Users & Auth Module defines identity, approval, masking, and administrative access.  
+The Users & Auth Module defines identity, approval, and administrative access.  
 It is the foundation of every other module in Tartami.  
 All identity logic is **database‑driven**, **RLS‑enforced**, and **append‑only** where applicable.
 
@@ -11,20 +11,21 @@ All identity logic is **database‑driven**, **RLS‑enforced**, and **append‑
 ## **user_profiles**
 Stores all user‑level metadata. Mirrors `auth.users` but adds application‑specific fields.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `id` | uuid (PK, matches auth.users.id) | User ID |
-| `full_name` | text | User’s name |
-| `phone` | text | Contact number |
-| `is_approved` | boolean | Required for bidding |
-| `is_admin` | boolean | Admin privileges |
-| `mask_identity` | boolean | Whether to mask identity in auctions |
-| `created_at` | timestamptz | Creation timestamp |
-| `updated_at` | timestamptz | Auto‑updated |
+| Column       | Type                         | Description                               |
+|--------------|------------------------------|-------------------------------------------|
+| `id`         | uuid (PK, matches auth.users.id) | User ID                               |
+| `full_name`  | text                         | User’s name (never shown in bidding UI)   |
+| `username`   | text                         | Public identity shown in auctions         |
+| `phone`      | text                         | Contact number                            |
+| `is_approved`| boolean                      | Required for bidding                      |
+| `is_admin`   | boolean                      | Admin privileges                          |
+| `created_at` | timestamptz                  | Creation timestamp                        |
+| `updated_at` | timestamptz                  | Auto‑updated                              |
 
 **Notes:**
 - Created automatically via trigger on `auth.users`  
 - Approval and admin flags controlled by admins only  
+- `username` is the **only** identity shown in bidding and auction UIs  
 
 ---
 
@@ -41,8 +42,8 @@ Stores all user‑level metadata. Mirrors `auth.users` but adds application‑sp
 ## **2. Profile Editing**
 Users can update:
 - full name  
+- username  
 - phone  
-- masking preference  
 
 Admins can update:
 - approval status  
@@ -53,24 +54,7 @@ All updates are RLS‑protected.
 
 ---
 
-## **3. Mask Identity Toggle**
-Users can toggle:
-
-```
-mask_identity = true | false
-```
-
-Masking affects:
-- bidding UI  
-- auction pages  
-- consignor views  
-
-Admins always see real identities.  
-Masking never affects admin views or financial records.
-
----
-
-## **4. Admin Flag**
+## **3. Admin Flag**
 Admins have elevated access but remain **strictly bounded**:
 
 Admins cannot:
@@ -92,7 +76,7 @@ Admins can:
 
 ## **/account/profile**
 - View/edit profile  
-- Toggle masking  
+- Edit username and contact details  
 - Show approval status  
 - Redirect unapproved users away from bidding pages  
 
@@ -102,7 +86,7 @@ Admins can:
 - List all users  
 - Approve bidders  
 - Promote/demote admins  
-- View masking preference  
+- View usernames and contact info  
 - View activity logs (future)  
 
 ---
@@ -127,7 +111,7 @@ Allowed:
 - `update` all rows  
 
 Boundaries:
-- cannot bypass masking in UI  
+- cannot bypass RLS  
 - cannot modify financial logic  
 - cannot impersonate users  
 
@@ -145,7 +129,7 @@ These rules **cannot be broken**.
 ### **Identity Invariants**
 - Every user must have a `user_profiles` row  
 - Approval is required for bidding  
-- Masking never affects admin visibility  
+- `username` is the only identity shown in bidding and auction UIs  
 - Admin flag cannot be self‑assigned by users  
 
 ### **Security Invariants**
@@ -176,7 +160,6 @@ This module must be completed before:
 Because all modules depend on:
 - identity  
 - approval  
-- masking  
 - admin boundaries  
 
 ---
@@ -189,6 +172,3 @@ Because all modules depend on:
 - Add admin‑only server actions for approvals  
 - Add middleware to protect `/app` routes  
 - Redirect unapproved users away from bidding and submission pages  
-- Masking logic must be applied at the UI layer, not the database layer  
-
----
