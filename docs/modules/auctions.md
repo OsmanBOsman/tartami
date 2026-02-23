@@ -121,7 +121,7 @@ Where:
 Rules:
 - Extensions must run inside the `place_bid` RPC  
 - Extensions must be atomic  
-- Extensions must be idempotent (safe to run multiple times without duplicating the extension)  
+- Extensions must be idempotent  
 - Extensions must be logged  
 
 ---
@@ -168,13 +168,14 @@ These rules **cannot be broken**.
 - Settlement is final and immutable  
 
 ### **Identity Invariants**
-- Public sees masked bidder identities  
-- Consignors see masked identities  
-- Admin sees full identities  
+- **Username is the only identity shown in all bidding contexts**  
+- **Consignors always see bidder usernames on their own items**  
+- **Full names never appear in bidding UI**  
+- **No masking, aliasing, or anonymization exists anywhere in the auction system**  
 
 ### **Financial Invariants**
-- Invoice generation is idempotent (never creates duplicate invoices)  
-- Settlement is idempotent (never creates duplicate payouts)  
+- Invoice generation is idempotent  
+- Settlement is idempotent  
 - No manual payout overrides  
 - No deletion of financial records  
 
@@ -192,7 +193,7 @@ These rules **cannot be broken**.
 
 ## **Consignor**
 - Same as public  
-- Can view their own items inside auctions  
+- Can view all bids on their own items (username + amount + timestamp)  
 
 ## **Admin**
 - Full read/write  
@@ -248,17 +249,17 @@ These rules **cannot be broken**.
 - Bidder retries  
 
 ### If invoice generation fails:
-- Idempotent retry (safe to retry without creating duplicate invoices)  
+- Idempotent retry  
 
 ### If settlement fails:
-- Idempotent retry (safe to retry without creating duplicate payouts)  
+- Idempotent retry  
 
 ---
 
 # **9. Module Dependencies**
 
 ### **Depends on:**
-- Users (admin role)  
+- Users (admin role, usernames)  
 - Items (assignment)  
 - Bidding (live phase)  
 - Invoices (post‑end)  
@@ -277,8 +278,8 @@ These rules **cannot be broken**.
 - Auction transitions should be DB‑driven  
 - Scheduled functions handle lifecycle transitions  
 - Soft‑close logic must run inside `place_bid` RPC  
-- Invoice generation must be idempotent (no duplicate invoices)  
-- Settlement must be idempotent (no duplicate payouts)  
+- Invoice generation must be idempotent  
+- Settlement must be idempotent  
 - No manual overrides for financial data  
 
 ---
