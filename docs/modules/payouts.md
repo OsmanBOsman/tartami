@@ -1,141 +1,127 @@
-# 💸 **Settlement & Payouts Module**
+# 💸 **Payouts Module**
 
-The Settlement & Payouts Module finalizes the financial lifecycle of an auction.  
-It ensures consignors are paid **only after** all related invoices are fully settled.  
-This module is deterministic, append‑only, idempotent (safe to run multiple times without creating duplicate payouts), and fully database‑driven.
+The Payouts Module defines how consignors are paid after buyers settle their invoices.  
+Payouts are **immutable**, **idempotent**, and generated only when an auction is fully settled.
+
+Tartami uses **username‑only identity** for consignors and buyers in all payout contexts.
 
 ---
 
 # **1. Table Definitions**
 
-## **consignor_payouts**
-Represents the payout owed to a consignor for a specific item.
+## **payouts**
+Stores one payout per consignor per auction.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | uuid (PK) | Payout ID |
-| `invoice_id` | uuid (FK → invoices.id) | Invoice that generated this payout |
-| `item_id` | uuid (FK → items.id) | Item sold |
-| `consignor_id` | uuid (FK → user_profiles.id) | Consignor receiving payout |
-| `hammer_price` | numeric | Final hammer price |
-| `commission_rate` | numeric | Commission rate applied |
-| `payout_amount` | numeric | hammer_price − commission |
-| `status` | enum(`pending`, `paid`) | Payout lifecycle |
-| `admin_id` | uuid (FK → user_profiles.id) | Admin who marked payout as paid |
-| `created_at` | timestamptz | Creation timestamp |
+| `auction_id` | uuid (FK → auctions.id) | Auction |
+| `consignor_id` | uuid (FK → user_profiles.id) | Seller |
+| `total_amount` | numeric | Total owed to consignor |
+| `status` | enum(`pending`, `paid`) | Payout state |
+| `created_at` | timestamptz | Timestamp |
 | `updated_at` | timestamptz | Auto‑updated |
 
-**Notes:**
-- Append‑only  
-- No editing payout amounts  
-- No deleting payouts  
+---
+
+## **payout_items**
+Stores each item contributing to a consignor payout.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | uuid (PK) | Line item ID |
+| `payout_id` | uuid (FK → payouts.id) | Parent payout |
+| `item_id` | uuid (FK → items.id) | Item sold |
+| `hammer_price` | numeric | Final winning bid |
+| `commission_rate` | numeric | Commission applied |
+| `payout_amount` | numeric | Amount owed to consignor |
+| `created_at` | timestamptz | Timestamp |
 
 ---
 
-# **2. Core Rules**
+# **2. Payout Generation Workflow**
 
-## **1. Settlement Only When All Invoices Are Paid**
-An auction cannot be settled until **every invoice** in that auction is:
+Payouts are generated when an auction transitions:
 
-- fully paid  
-- or cancelled with a logged reason  
+```
+ended → settled
+```
 
-This ensures financial correctness and prevents premature payouts.
+Only when:
 
----
+- all invoices are paid  
+- or cancelled with reason  
 
-## **2. Payout Formula**
+Steps:
 
-\[
-payout = hammer\_price - commission
-\]
+1. For each consignor, gather all items sold  
+2. Compute:
+   ```
+   payout_amount = hammer_price - (hammer_price * commission_rate)
+   ```
+3. Create payout record  
+4. Create payout_items  
+5. Mark payout as `pending`  
 
-Commission rate comes from the auction:
-
-- Regular auctions: **10%**  
-- Special auctions: **15%**
-
-Commission is locked once the auction goes live.
-
----
-
-## **3. Admin Marks Payout as Paid**
-- Payments to consignors happen offline  
-- Admin records payout manually  
-- Status transitions: `pending → paid`  
-- Append‑only: no deletion or modification  
+**Payout generation is idempotent** — running it twice never creates duplicates.
 
 ---
 
-## **4. Append‑Only Financial Model**
-- No editing payout amounts  
-- No deleting payouts  
-- Corrections = additive adjustments (rare)  
-- All admin actions logged  
-- All calculations done in the database  
+# **3. Identity Rules**
+
+- Payouts show **consignor username**  
+- Admins see:
+  - consignor username  
+  - consignor full name (admin tools only)  
+- No masking or aliasing exists anywhere  
 
 ---
 
-# **3. Settlement Workflow**
+# **4. Payment Workflow**
 
-## **A. Auction Ends**
-- Invoices are generated  
-- Payments are recorded  
-- Once all invoices are paid → settlement becomes available  
-
----
-
-## **B. Settlement RPC Runs**
-The settlement RPC:
-
-1. Validates all invoices are paid  
-2. Calculates payout per item  
-3. Creates rows in `consignor_payouts`  
-4. Marks auction as `settled`  
-
-The RPC must be **idempotent**  
-(safe to run multiple times without creating duplicate payouts).
-
----
-
-## **C. Admin Pays Consignors**
-- Offline payment  
+### **A. Admin pays consignor**
+- Payment recorded externally  
 - Admin marks payout as `paid`  
-- Audit log entry created  
+- Timestamp updated  
+
+### **B. Consignor disputes payout**
+- Admin adds note (future feature)  
+- Payout remains immutable  
 
 ---
 
-# **4. Invariants**
+# **5. Invariants**
 
-These rules **cannot be broken**.
-
-### **Settlement Invariants**
-- Auction cannot settle until all invoices are paid  
-- Settlement RPC must be idempotent (never duplicate payouts)  
-- Settlement is final and immutable  
+These rules **cannot be broken**:
 
 ### **Payout Invariants**
+- One payout per consignor per auction  
 - Payout amounts are immutable  
 - No deletion of payouts  
-- No editing payout amounts  
-- Status moves forward only (`pending → paid`)  
+- No deletion of payout_items  
+
+### **Identity Invariants**
+- Username is the only identity shown  
+- Full names appear only in admin tools  
+- No masking or aliasing  
 
 ### **Financial Invariants**
-- All calculations done in the database  
-- No frontend financial logic  
-- All admin actions logged  
+- Payout generation is idempotent  
+- No manual overrides of hammer prices  
+- No editing payout amounts  
 
 ---
 
-# **5. RLS Rules**
+# **6. RLS Rules**
 
 ## **Consignor**
 Allowed:
-- `select` only their own payouts  
+- `select` own payouts  
+- `select` own payout_items  
 
 Not allowed:
 - modifying payouts  
-- marking payouts as paid  
+- viewing other consignors’ payouts  
 
 ---
 
@@ -145,76 +131,44 @@ Allowed:
 - mark payouts as paid  
 
 Not allowed:
-- modifying payout amounts  
+- editing payout amounts  
 - deleting payouts  
 
 ---
 
-## **Public**
-- No access  
+# **7. UI Pages**
 
----
-
-# **6. UI Pages**
-
-### **/admin/settlement**
-- Shows auctions ready for settlement  
-- Runs settlement RPC  
-- Displays payout breakdown  
-
-### **/admin/payouts**
-- List of all consignor payouts  
-- Mark payouts as paid  
-- View audit logs  
-
-### **/payouts**
-- Consignor view of their payouts  
+### `/account/payouts`
+- List of consignor payouts  
 - Status indicators  
-- Linked to invoices  
+- Total amount  
+
+### `/account/payouts/[id]`
+- Payout detail  
+- Line items  
+- Commission  
+- Payout amounts  
+
+### `/admin/payouts`
+- All payouts  
+- Filters: pending, paid  
+- Full identity (username + full name)  
 
 ---
 
-# **7. Failure & Recovery**
+# **8. Failure & Recovery**
 
-### If settlement RPC fails:
-- Retry is safe  
-- Idempotent logic prevents duplicate payouts  
+### If payout generation fails:
+- Idempotent retry  
+- No duplicates  
 
-### If admin marks payout incorrectly:
-- Add adjustment payout (append‑only)  
-
-### If invoice status changes unexpectedly:
-- Settlement RPC refuses to run  
-- Admin must resolve invoice state  
-
-### If payout marking fails:
+### If payment update fails:
 - Admin retries  
-- No duplicate “paid” entries  
+- No partial state  
 
 ---
 
-# **8. Module Dependencies**
+# **Final Note**
 
-### **Depends on:**
-- Users (consignor identity)  
-- Items (ownership)  
-- Invoices (totals)  
-- Payments (paid status)  
-
-### **Required before:**
-- Notifications module  
-- Admin console  
-
-Because payouts trigger notifications and appear in admin dashboards.
-
----
-
-# **9. Implementation Notes**
-
-- Settlement RPC must be **idempotent** (no duplicate payouts)  
-- Payout amounts must be calculated in the database  
-- Admin marking payouts as paid must write to `audit_logs`  
-- No frontend calculation of financial amounts  
-- Append‑only model ensures financial integrity  
-
----
+Payouts complete the financial lifecycle of Tartami.  
+They ensure consignors are paid accurately, transparently, and with full auditability.
