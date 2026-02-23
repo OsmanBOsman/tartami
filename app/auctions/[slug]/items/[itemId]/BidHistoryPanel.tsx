@@ -24,6 +24,10 @@ export function BidHistoryPanel({ itemId }: { itemId: string }) {
           >
             <strong>${bid.amount}</strong>
             <div style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+              {bid.bidder_name ?? 'Unknown bidder'}
+            </div>
+
+            <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>
               {new Date(bid.created_at).toLocaleString()}
             </div>
           </li>

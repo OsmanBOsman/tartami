@@ -12,9 +12,9 @@ export function useBidHistory(itemId: string) {
     if (!itemId) return
     setLoading(true)
 
-    const { data, error } = await supabase.rpc('get_bid_history', {
-      p_item_id: itemId,
-    })
+    const { data, error } = await supabase.rpc('get_bid_history_with_names', {
+        p_item_id: itemId,
+    })      
 
     if (!error && data) setHistory(data)
     setLoading(false)
