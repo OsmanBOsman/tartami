@@ -15,7 +15,7 @@ Admins can:
 - Approve bidders  
 - Promote/demote admins  
 - View user profiles  
-- View masking labels (UI‑level only)  
+- View usernames and full names (admin tools only)  
 - View user activity (future)  
 
 Admins cannot:
@@ -64,7 +64,7 @@ Admins cannot:
 - Delete invoices  
 - Delete payments  
 - Modify invoice totals  
-- Mark invoices as paid manually (only payments determine status)  
+- Mark invoices as paid without a recorded payment  
 
 ---
 
@@ -108,7 +108,7 @@ Audit logs are:
 - User list  
 - Approvals  
 - Admin promotions  
-- Profile details  
+- Profile details (username + full name)  
 
 ---
 
@@ -200,10 +200,10 @@ Admins have elevated access but remain bound by:
 
 - financial invariants  
 - settlement rules  
-- masking rules (UI‑level)  
+- username‑only identity model  
 - append‑only financial model  
 
-Admins cannot impersonate users or access private bidder identities outside admin‑approved contexts.
+Admins cannot impersonate users or access private bidder information outside admin‑approved contexts.
 
 ---
 
@@ -230,7 +230,7 @@ Admins cannot impersonate users or access private bidder identities outside admi
 
 - Use server actions for all admin operations  
 - All admin actions must write to `audit_logs`  
-- Admin UI must never expose masked identities incorrectly  
+- Admin UI must display username + full name only in admin contexts  
 - Admin cannot impersonate users  
 - Admin cannot bypass DB logic  
 - All financial actions must be append‑only and idempotent  
