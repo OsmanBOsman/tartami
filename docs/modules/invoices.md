@@ -1,249 +1,178 @@
-# 🧾 **Invoices & Payments Module**
+# 🧾 **Invoices Module**
 
-The Invoices & Payments Module manages all post‑auction financial flows.  
-It is fully **append‑only**, **admin‑verified**, **database‑driven**, and **idempotent** (safe to run multiple times without creating duplicate invoices or duplicate payments).
+The Invoices Module defines how winning bids become financial obligations, how buyers are billed, and how auctions transition from “ended” to “settled.”  
+Invoices are **immutable**, **append‑only**, and **generated automatically** when an auction ends.
 
-No financial logic lives in the frontend.  
-All totals, adjustments, and validations are computed in the database.
+Tartami uses **username‑only identity** in all invoice contexts.  
+Full names are never shown in bidding or invoice UIs.
 
 ---
 
 # **1. Table Definitions**
 
 ## **invoices**
-Represents a bidder’s total obligation for a single auction.
+Stores one invoice per winning bidder per auction.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | uuid (PK) | Invoice ID |
-| `auction_id` | uuid (FK → auctions.id) | Auction this invoice belongs to |
-| `bidder_id` | uuid (FK → user_profiles.id) | Bidder being billed |
-| `total` | numeric | Hammer price + buyer premium |
-| `status` | enum(`unpaid`, `paid`, `cancelled`) | Invoice lifecycle |
-| `created_at` | timestamptz | Creation timestamp |
+| `auction_id` | uuid (FK → auctions.id) | Auction |
+| `bidder_id` | uuid (FK → user_profiles.id) | Buyer |
+| `status` | enum(`unpaid`, `paid`, `cancelled`) | Payment state |
+| `total_amount` | numeric | Sum of all line items |
+| `created_at` | timestamptz | Timestamp |
 | `updated_at` | timestamptz | Auto‑updated |
-
-**Notes:**
-- One invoice per bidder per auction  
-- Totals are immutable after creation  
 
 ---
 
-## **payments**
-Append‑only record of offline payments.
+## **invoice_items**
+Stores each item won by the bidder.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| `id` | uuid (PK) | Payment ID |
-| `invoice_id` | uuid (FK → invoices.id) | Invoice being paid |
-| `amount` | numeric | Payment amount |
-| `method` | text | cash, transfer, mobile money |
-| `admin_id` | uuid (FK → user_profiles.id) | Admin who recorded the payment |
+| `id` | uuid (PK) | Line item ID |
+| `invoice_id` | uuid (FK → invoices.id) | Parent invoice |
+| `item_id` | uuid (FK → items.id) | Item won |
+| `hammer_price` | numeric | Final winning bid |
 | `created_at` | timestamptz | Timestamp |
 
-**Notes:**
-- No updates  
-- No deletes  
-- Reversals = negative payments  
-
 ---
 
-# **2. Core Rules**
+# **2. Invoice Generation Workflow**
 
-## **1. One Invoice Per Auction Per Bidder**
-If a bidder wins multiple items in the same auction:
-
-→ **One invoice** with multiple line items.
-
-Enforced by the invoice generation RPC.
-
----
-
-## **2. Buyer Premium Applied Automatically**
-- Regular auctions: **10%**  
-- Special auctions: **15%**  
-
-Commission rate comes from the auction record and is locked once the auction is live.
-
----
-
-## **3. Payments Are Offline**
-No online card processing.
-
-Admins record payments manually using:
-
-- cash  
-- bank transfer  
-- mobile money  
-
----
-
-## **4. Admin Marks Invoice as Paid**
-An invoice becomes **paid** when:
+Invoices are generated **automatically** when an auction transitions:
 
 ```
-sum(payments.amount) ≥ invoice.total
+live → ended
 ```
 
-Rules:
-- Overpayments create a positive balance  
-- Wrong payments → reversal entry (negative payment)  
-- No editing or deleting payments  
+Steps:
+
+1. Identify highest valid bid for each item  
+2. Group items by bidder  
+3. Create one invoice per bidder  
+4. Create invoice_items for each item won  
+5. Compute total_amount  
+6. Mark invoice as `unpaid`
+
+**Invoice generation is idempotent** — running it twice never creates duplicates.
 
 ---
 
-## **5. Append‑Only Financial Model**
-- No deleting invoices  
-- No deleting payments  
-- No editing totals  
-- All corrections are additive adjustments  
-- All financial actions must be logged  
+# **3. Identity Rules**
+
+- Invoices show **bidder username**  
+- Consignors see **buyer username** for items they sold  
+- Admins see:
+  - username  
+  - full name (admin tools only)  
+- No masking, aliasing, or anonymization exists anywhere
 
 ---
 
-# **3. Invoice Workflow**
+# **4. Payment Workflow**
 
-## **A. Auction Ends**
-- Highest valid bids determine hammer prices  
-- Invoice generation RPC runs  
-- One invoice per bidder per auction is created  
-- Invoice generation must be **idempotent**  
-  (running twice must not create duplicate invoices)
+### **A. Buyer pays invoice**
+- Payment recorded externally (e.g., mobile money, bank transfer)  
+- Admin marks invoice as `paid`  
+- Timestamp updated  
 
----
-
-## **B. User Pays Offline**
-- Cash / transfer / mobile money  
-- Admin records payment in `/admin/invoices`  
-- Payment is append‑only  
+### **B. Buyer fails to pay**
+- Admin may mark invoice as `cancelled` with reason  
+- Cancelled invoices do **not** generate payouts  
 
 ---
 
-## **C. Invoice Becomes Paid**
-When total payments ≥ invoice total:
+# **5. Invariants**
 
-- Invoice transitions to `paid`  
-- Auction becomes eligible for settlement  
-
----
-
-# **4. Invariants**
-
-These rules **cannot be broken**.
+These rules **cannot be broken**:
 
 ### **Invoice Invariants**
 - One invoice per bidder per auction  
-- Totals are immutable  
-- Status moves forward only  
+- Invoice totals are immutable once created  
+- Line items cannot be edited  
 - No deletion of invoices  
+- No deletion of invoice_items  
 
-### **Payment Invariants**
-- Payments are append‑only  
-- No edits  
-- No deletes  
-- Reversals = negative payments  
-- Payment recording must be idempotent (no duplicate payments on retry)  
+### **Identity Invariants**
+- Username is the only identity shown  
+- Full names appear only in admin tools  
+- No masking or aliasing  
 
 ### **Financial Invariants**
-- All totals computed in the database  
-- No frontend calculation  
-- All admin actions logged  
+- Invoice generation is idempotent  
+- No manual overrides of hammer prices  
+- No editing of totals after creation  
 
 ---
 
-# **5. RLS Rules**
+# **6. RLS Rules**
 
 ## **Bidder**
 Allowed:
-- `select` their own invoices  
-- `select` their own payments  
+- `select` own invoices  
+- `select` own invoice_items  
 
 Not allowed:
 - modifying invoices  
-- modifying payments  
+- modifying line items  
+
+---
+
+## **Consignor**
+Allowed:
+- `select` invoice_items for items they own  
+- Sees buyer username  
+
+Not allowed:
+- viewing unrelated invoices  
 
 ---
 
 ## **Admin**
 Allowed:
 - full read/write  
-- record payments  
-- add adjustments  
-- cancel unpaid invoices  
+- mark invoices as paid/cancelled  
 
 Not allowed:
+- editing hammer prices  
 - deleting invoices  
-- deleting payments  
-- modifying totals after creation  
 
 ---
 
-## **Public**
-- No access  
+# **7. UI Pages**
 
----
-
-# **6. UI Pages**
-
-### **/invoices**
-- List of user’s invoices  
+### `/account/invoices`
+- List of buyer’s invoices  
 - Status indicators  
-- Payment history  
+- Total amount  
 
-### **/invoices/[id]**
+### `/account/invoices/[id]`
 - Invoice detail  
 - Line items  
-- Payment history  
+- Hammer prices  
+- Buyer username  
 
-### **/admin/invoices**
-- Admin view of all invoices  
-- Record payments  
-- Add adjustments  
-- Cancel unpaid invoices  
-- View audit logs  
+### `/admin/invoices`
+- All invoices  
+- Filters: unpaid, paid, cancelled  
+- Full identity (username + full name)  
 
 ---
 
-# **7. Failure & Recovery**
+# **8. Failure & Recovery**
 
 ### If invoice generation fails:
-- Retry is safe  
-- Idempotent logic prevents duplicate invoices  
+- Idempotent retry  
+- No duplicates  
 
-### If payment recording fails:
-- Retry is safe  
-- Idempotent logic prevents duplicate payments  
-
-### If admin enters wrong payment:
-- Add reversal entry (negative amount)  
-
-### If totals mismatch:
-- Admin adds adjustment line item  
+### If payment update fails:
+- Admin retries  
+- No partial state  
 
 ---
 
-# **8. Module Dependencies**
+# **Final Note**
 
-### **Depends on:**
-- Users (identity + approval)  
-- Auctions (commission rate + lifecycle)  
-- Bidding (hammer prices)  
-
-### **Required before:**
-- Settlement  
-- Payouts  
-
-Because settlement depends on invoices being fully paid.
-
----
-
-# **9. Implementation Notes**
-
-- Invoice generation must be **idempotent** (no duplicate invoices)  
-- Payment recording must be **append‑only**  
-- Totals must be computed in the database  
-- No frontend financial logic  
-- Use server actions for admin operations  
-- All admin actions must be logged  
-
----
+Invoices form the financial backbone of Tartami.  
+They connect bidding to payouts and ensure every transaction is auditable, immutable, and transparent.
