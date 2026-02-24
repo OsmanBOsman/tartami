@@ -1,7 +1,7 @@
-# 🏗️ **Tartami — System Architecture**
+# 🏗️ **Tartami — System Architecture (Updated, Mask‑Free)**
 
 Tartami is a **Postgres‑first**, **RLS‑enforced**, **append‑only**, and **audit‑driven** auction system.  
-The architecture is intentionally simple, deterministic, and built to protect **trust**, **privacy**, and **financial correctness**.
+The architecture is intentionally simple, deterministic, and built to protect **trust**, **transparency**, and **financial correctness**.
 
 The database is the **authoritative layer**.  
 The frontend is the **interface layer**.  
@@ -75,7 +75,6 @@ The frontend is intentionally thin:
 - UI rendering  
 - forms  
 - navigation  
-- masking logic  
 - realtime display  
 - optimistic UI (optional)  
 - user interactions  
@@ -151,13 +150,14 @@ Security is not optional — it is foundational.
 - Server Actions call RPCs securely  
 
 ## **Backend**
-- Supabase hosts:
-  - Postgres  
-  - Auth  
-  - RLS  
-  - Realtime  
-  - Storage  
-  - Edge Functions (future optional)  
+Supabase hosts:
+
+- Postgres  
+- Auth  
+- RLS  
+- Realtime  
+- Storage  
+- Edge Functions (future optional)  
 
 ## **Environment Separation**
 - `dev` → local Supabase  
@@ -178,7 +178,7 @@ All important logic lives in Postgres:
 - correctness  
 - fairness  
 - financial integrity  
-- identity protection  
+- identity clarity  
 - auditability  
 
 ---
