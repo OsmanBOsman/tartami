@@ -46,7 +46,7 @@ export default async function AuctionItemsPage({ params }: any) {
 
       <div className="border rounded-lg divide-y">
         {items?.map((item: any) => (
-          <div key={item.id} className="p-4 space-y-2">
+          <div key={item.id} className="p-4 space-y-3">
             <div className="font-medium">{item.title}</div>
 
             <div className="text-sm text-muted-foreground">
@@ -65,25 +65,23 @@ export default async function AuctionItemsPage({ params }: any) {
               )}
             </div>
 
-            {/* Assign consignor button */}
-            <Link
-              href={`/admin/auctions/${params.id}/items/${item.id}/consignor`}
-              className="inline-block px-3 py-1 bg-blue-600 text-white rounded-md text-sm"
-            >
-              Assign Consignor
-            </Link>
+            <div className="flex gap-2 pt-2">
+              {/* Assign consignor button */}
+              <Link
+                href={`/admin/auctions/${params.id}/items/${item.id}/consignor`}
+                className="inline-block px-3 py-1 bg-blue-600 text-white rounded-md text-sm"
+              >
+                Assign Consignor
+              </Link>
 
-            {/* Images button */}
-            <Link
-              href={`/admin/auctions/${params.id}/items/${item.id}/images`}
-              className="inline-block px-3 py-1 bg-purple-600 text-white rounded-md text-sm"
-            >
-              Upload Images
-            </Link>
-
-
-
-            
+              {/* Images button */}
+              <Link
+                href={`/admin/auctions/${params.id}/items/${item.id}/images`}
+                className="inline-block px-3 py-1 bg-purple-600 text-white rounded-md text-sm"
+              >
+                Images
+              </Link>
+            </div>
           </div>
         ))}
 
