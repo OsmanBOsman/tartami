@@ -72,6 +72,18 @@ export default async function AuctionItemsPage({ params }: any) {
             >
               Assign Consignor
             </Link>
+
+            {/* Images button */}
+            <Link
+              href={`/admin/auctions/${params.id}/items/${item.id}/images`}
+              className="inline-block px-3 py-1 bg-purple-600 text-white rounded-md text-sm"
+            >
+              Upload Images
+            </Link>
+
+
+
+            
           </div>
         ))}
 
