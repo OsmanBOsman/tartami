@@ -1,19 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 
-export async function POST(req: Request) {
+export async function POST() {
   const supabase = await createClient();
-  const body = await req.json();
-
-  const {
-    full_name,
-    username,
-    phone,
-    city,
-    neighborhood,
-    country,
-    avatar_url,
-  } = body;
 
   // Get current user
   const {
@@ -44,33 +33,33 @@ export async function POST(req: Request) {
     );
   }
 
-  // Prevent editing full_name or phone after approval
-  const tryingToChangeLockedFields =
-    profile.approved &&
-    (full_name !== profile.full_name || phone !== profile.phone);
-
-  if (tryingToChangeLockedFields) {
+  // Prevent re-requesting approval if already approved
+  if (profile.approved) {
     return NextResponse.json(
-      {
-        error:
-          "You cannot change your full name or phone number after approval.",
-      },
+      { error: "Your account is already approved." },
       { status: 400 }
     );
   }
 
-  // Update profile
+  // Validate required fields before requesting approval
+  const missing =
+    !profile.full_name ||
+    !profile.username ||
+    !profile.phone ||
+    !profile.city ||
+    !profile.neighborhood;
+
+  if (missing) {
+    return NextResponse.json(
+      { error: "Complete your profile before requesting approval." },
+      { status: 400 }
+    );
+  }
+
+  // Mark as pending approval (approved = false)
   const { error: updateError } = await supabase
     .from("user_profiles")
-    .update({
-      full_name,
-      username,
-      phone,
-      city,
-      neighborhood,
-      country,
-      avatar_url,
-    })
+    .update({ approved: false })
     .eq("id", user.id);
 
   if (updateError) {
@@ -80,5 +69,8 @@ export async function POST(req: Request) {
     );
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    message: "Approval requested. Admin will review your profile.",
+  });
 }
