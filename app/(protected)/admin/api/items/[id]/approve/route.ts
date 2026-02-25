@@ -1,7 +1,10 @@
+// app/(protected)/admin/api/items/[id]/approve/route.ts
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
+// Create SSR Supabase client
 async function createClient() {
   const cookieStore = await cookies();
 
@@ -18,16 +21,20 @@ async function createClient() {
   );
 }
 
+// Next.js 16 route handler signature
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params; // must await params
+
   const supabase = await createClient();
 
+  // Approve the item
   await supabase
     .from("auction_items")
     .update({ status: "approved" })
-    .eq("id", params.id);
+    .eq("id", id);
 
   return NextResponse.redirect(req.headers.get("referer") || "/admin");
 }

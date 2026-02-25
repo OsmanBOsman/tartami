@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-// Create SSR client
 async function createClient() {
   const cookieStore = await cookies();
 
@@ -23,19 +22,19 @@ async function createClient() {
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+
   const supabase = await createClient();
 
   const form = await req.formData();
   const consignor_id = form.get("consignor_id");
 
-  // Update the item with the new consignor
   await supabase
     .from("auction_items")
     .update({ consignor_id })
-    .eq("id", params.id);
+    .eq("id", id);
 
-  // Redirect back to items list
   return NextResponse.redirect(req.headers.get("referer") || "/admin");
 }

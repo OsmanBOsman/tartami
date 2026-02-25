@@ -1,3 +1,5 @@
+// app/(protected)/admin/api/items/[id]/reject/route.ts
+
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -20,14 +22,16 @@ async function createClient() {
 
 export async function POST(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+
   const supabase = await createClient();
 
   await supabase
     .from("auction_items")
     .update({ status: "rejected" })
-    .eq("id", params.id);
+    .eq("id", id);
 
   return NextResponse.redirect(req.headers.get("referer") || "/admin");
 }
