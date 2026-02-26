@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, DragEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 
@@ -14,6 +14,7 @@ export default function ItemImagesPage({ params }: any) {
 
   const [file, setFile] = useState<File | null>(null);
   const [images, setImages] = useState<any[]>([]);
+  const [dragActive, setDragActive] = useState(false);
 
   // Load existing images
   useEffect(() => {
@@ -31,14 +32,12 @@ export default function ItemImagesPage({ params }: any) {
     loadImages();
   }, [supabase, params.itemId]);
 
-  async function uploadImage() {
-    if (!file) return;
-
-    const filePath = `${params.itemId}/${Date.now()}-${file.name}`;
+  async function uploadSelectedFile(selectedFile: File) {
+    const filePath = `${params.itemId}/${Date.now()}-${selectedFile.name}`;
 
     const { error: storageError } = await supabase.storage
       .from("item-images")
-      .upload(filePath, file);
+      .upload(filePath, selectedFile);
 
     if (storageError) {
       console.error(storageError);
@@ -57,6 +56,11 @@ export default function ItemImagesPage({ params }: any) {
     router.refresh();
   }
 
+  async function uploadImage() {
+    if (!file) return;
+    await uploadSelectedFile(file);
+  }
+
   async function deleteImage(image: any) {
     const path = image.url.split("/item-images/")[1];
 
@@ -68,13 +72,11 @@ export default function ItemImagesPage({ params }: any) {
   }
 
   async function setPrimary(img: any) {
-    // Clear existing primary
     await supabase
       .from("item_images")
       .update({ is_primary: false })
       .eq("item_id", params.itemId);
 
-    // Set new primary
     await supabase
       .from("item_images")
       .update({ is_primary: true })
@@ -83,22 +85,55 @@ export default function ItemImagesPage({ params }: any) {
     router.refresh();
   }
 
+  // Drag & Drop Handlers
+  function handleDrag(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await uploadSelectedFile(e.dataTransfer.files[0]);
+    }
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-xl">
       <h1 className="text-2xl font-semibold">Item Images</h1>
 
-      {/* Upload */}
-      <div className="space-y-3">
+      {/* Drag & Drop Zone */}
+      <div
+        onDragEnter={handleDrag}
+        onDragOver={handleDrag}
+        onDragLeave={handleDrag}
+        onDrop={handleDrop}
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition ${
+          dragActive ? "border-primary bg-primary/10" : "border-muted"
+        }`}
+      >
+        <p className="text-sm text-muted-foreground">
+          Drag & drop an image here, or click below to upload
+        </p>
+
         <input
           type="file"
           accept="image/*"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
-          className="w-full border p-2 rounded"
+          className="w-full border p-2 rounded mt-4"
         />
 
         <button
           onClick={uploadImage}
-          className="px-4 py-2 bg-primary text-white rounded-md"
+          className="mt-3 px-4 py-2 bg-primary text-white rounded-md"
         >
           Upload
         </button>
