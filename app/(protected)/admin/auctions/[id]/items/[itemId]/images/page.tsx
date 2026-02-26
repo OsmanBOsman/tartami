@@ -22,6 +22,7 @@ export default function ItemImagesPage({ params }: any) {
         .from("item_images")
         .select("*")
         .eq("item_id", params.itemId)
+        .order("is_primary", { ascending: false })
         .order("created_at", { ascending: true });
 
       setImages(data || []);
@@ -57,14 +58,27 @@ export default function ItemImagesPage({ params }: any) {
   }
 
   async function deleteImage(image: any) {
-    // Extract storage path from public URL
     const path = image.url.split("/item-images/")[1];
 
-    // Delete from storage
     await supabase.storage.from("item-images").remove([path]);
 
-    // Delete from DB
     await supabase.from("item_images").delete().eq("id", image.id);
+
+    router.refresh();
+  }
+
+  async function setPrimary(img: any) {
+    // Clear existing primary
+    await supabase
+      .from("item_images")
+      .update({ is_primary: false })
+      .eq("item_id", params.itemId);
+
+    // Set new primary
+    await supabase
+      .from("item_images")
+      .update({ is_primary: true })
+      .eq("id", img.id);
 
     router.refresh();
   }
@@ -102,6 +116,19 @@ export default function ItemImagesPage({ params }: any) {
                 alt="Item image"
                 className="rounded border"
               />
+
+              {img.is_primary && (
+                <div className="text-xs text-green-700 font-medium">
+                  Primary Image
+                </div>
+              )}
+
+              <button
+                onClick={() => setPrimary(img)}
+                className="w-full px-3 py-1 bg-green-600 text-white rounded-md text-sm"
+              >
+                Set Primary
+              </button>
 
               <button
                 onClick={() => deleteImage(img)}

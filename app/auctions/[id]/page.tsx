@@ -31,10 +31,10 @@ export default async function AuctionEventPage({ params }: any) {
     .eq("id", params.id)
     .single();
 
-  // Fetch approved items for this event
+  // Fetch approved items + primary images
   const { data: items } = await supabase
     .from("auction_items")
-    .select("*, consignor:consignor_id(username)")
+    .select("*, consignor:consignor_id(username), images:item_images(url, is_primary)")
     .eq("event_id", params.id)
     .eq("status", "approved")
     .order("created_at", { ascending: false });
@@ -48,18 +48,32 @@ export default async function AuctionEventPage({ params }: any) {
       <h2 className="text-xl font-semibold pt-4">Items</h2>
 
       <div className="border rounded-lg divide-y">
-        {items?.map((item: any) => (
-          <Link
-            key={item.id}
-            href={`/auctions/${params.id}/items/${item.id}`}
-            className="block p-4 hover:bg-muted transition"
-          >
-            <div className="font-medium">{item.title}</div>
-            <div className="text-sm text-muted-foreground">
-              Starting Price: ${item.starting_price}
-            </div>
-          </Link>
-        ))}
+        {items?.map((item: any) => {
+          const primary = item.images?.find((img: any) => img.is_primary);
+
+          return (
+            <Link
+              key={item.id}
+              href={`/auctions/${params.id}/items/${item.id}`}
+              className="block p-4 hover:bg-muted transition space-y-3"
+            >
+              {/* Primary image */}
+              {primary && (
+                <img
+                  src={primary.url}
+                  alt={item.title}
+                  className="rounded border w-full"
+                />
+              )}
+
+              <div className="font-medium">{item.title}</div>
+
+              <div className="text-sm text-muted-foreground">
+                Starting Price: ${item.starting_price}
+              </div>
+            </Link>
+          );
+        })}
 
         {items?.length === 0 && (
           <div className="p-4 text-muted-foreground">

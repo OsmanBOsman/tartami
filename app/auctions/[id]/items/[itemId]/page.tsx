@@ -30,11 +30,12 @@ export default async function ItemPage({ params }: any) {
     .eq("id", params.itemId)
     .single();
 
-  // Fetch images (null-safe)
+  // Fetch images (primary first)
   const { data: images } = await supabase
     .from("item_images")
     .select("*")
     .eq("item_id", params.itemId)
+    .order("is_primary", { ascending: false })
     .order("created_at", { ascending: true });
 
   return (
@@ -51,7 +52,7 @@ export default async function ItemPage({ params }: any) {
         Consignor: {item.consignor?.username || "Unknown"}
       </div>
 
-      {/* Image gallery (null-safe) */}
+      {/* Image gallery */}
       {Array.isArray(images) && images.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Images</h2>
