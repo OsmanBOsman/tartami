@@ -3,9 +3,39 @@
 import { useEffect, useState } from "react";
 import { createClient, PostgrestSingleResponse } from "@supabase/supabase-js";
 
+// Simple toast (no UI library needed)
+function showToast(message: string) {
+  const toast = document.createElement("div");
+  toast.textContent = message;
+
+  toast.style.position = "fixed";
+  toast.style.bottom = "20px";
+  toast.style.left = "50%";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.background = "#333";
+  toast.style.color = "white";
+  toast.style.padding = "12px 18px";
+  toast.style.borderRadius = "6px";
+  toast.style.fontSize = "14px";
+  toast.style.zIndex = "9999";
+  toast.style.opacity = "0";
+  toast.style.transition = "opacity 0.3s ease";
+
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+  });
+
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    setTimeout(() => toast.remove(), 300);
+  }, 2500);
+}
+
 type BidBoxProps = {
   itemId: string;
-  eventId: string; // <-- ADDED
+  eventId: string;
   currentPrice: number;
   nextMinBid: number;
 };
@@ -21,12 +51,13 @@ type BidIncrementRow = {
 type RealtimePayload = {
   new: {
     amount: number;
+    bidder_id: string;
   };
 };
 
 export default function BidBox({
   itemId,
-  eventId, // <-- ADDED
+  eventId,
   currentPrice,
   nextMinBid,
 }: BidBoxProps) {
@@ -38,8 +69,20 @@ export default function BidBox({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isLeading, setIsLeading] = useState<boolean>(false);
+
   // -----------------------------
-  // REALTIME PRICE UPDATES
+  // GET CURRENT USER
+  // -----------------------------
+  useEffect(() => {
+    supabase.auth.getUser().then((res) => {
+      setCurrentUserId(res.data.user?.id ?? null);
+    });
+  }, []);
+
+  // -----------------------------
+  // REALTIME PRICE + OUTBID + LEADING DETECTION
   // -----------------------------
   useEffect(() => {
     const channel = supabase
@@ -53,24 +96,68 @@ export default function BidBox({
           filter: `item_id=eq.${itemId}`,
         },
         async (payload: RealtimePayload) => {
-          const newBid = payload.new.amount;
-          const newPrice = Number(newBid);
+          const newBidAmount = Number(payload.new.amount);
+          const newBidder = payload.new.bidder_id;
 
+          // Fetch increment for new price
           const { data }: PostgrestSingleResponse<BidIncrementRow | null> =
             await supabase
               .from("bid_increments")
               .select("*")
-              .lte("min_amount", newPrice)
-              .or(`max_amount.is.null,max_amount.gte.${newPrice}`)
+              .lte("min_amount", newBidAmount)
+              .or(`max_amount.is.null,max_amount.gte.${newBidAmount}`)
               .order("min_amount", { ascending: false })
               .limit(1)
               .maybeSingle();
 
           const increment = data ? Number(data.increment) : 1;
 
-          setPrice(newPrice);
-          setMinBid(newPrice + increment);
-          setAmount(newPrice + increment);
+          // -----------------------------
+          // OUTBID DETECTION
+          // -----------------------------
+          if (
+            currentUserId &&
+            newBidder !== currentUserId &&
+            newBidAmount > price
+          ) {
+            // Fetch username of outbidder
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("username")
+              .eq("id", newBidder)
+              .single();
+
+            const username = profile?.username || "another bidder";
+
+            // Toast
+            showToast(`You’ve been outbid by ${username}.`);
+
+            // Soft sound
+            const audio = new Audio(
+              "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA="
+            );
+            audio.play().catch(() => {});
+
+            // Vibration (mobile)
+            if (navigator.vibrate) {
+              navigator.vibrate(80);
+            }
+
+            // User is no longer leading
+            setIsLeading(false);
+          }
+
+          // -----------------------------
+          // LEADING BIDDER DETECTION
+          // -----------------------------
+          if (currentUserId && newBidder === currentUserId) {
+            setIsLeading(true);
+          }
+
+          // Update UI
+          setPrice(newBidAmount);
+          setMinBid(newBidAmount + increment);
+          setAmount(newBidAmount + increment);
         }
       )
       .subscribe();
@@ -78,7 +165,7 @@ export default function BidBox({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [itemId]);
+  }, [itemId, price, currentUserId]);
 
   // -----------------------------
   // PLACE BID
@@ -110,6 +197,9 @@ export default function BidBox({
 
       setMessage("Bid placed successfully!");
       setAmount(data.nextMinBid);
+
+      // User becomes leading bidder immediately after placing a valid bid
+      setIsLeading(true);
     } catch {
       setError("Something went wrong");
     }
@@ -119,6 +209,12 @@ export default function BidBox({
 
   return (
     <div className="border rounded-lg p-4 space-y-3">
+      {isLeading && (
+        <div className="text-green-600 font-medium text-sm">
+          You are the leading bidder
+        </div>
+      )}
+
       <div>
         <div className="text-xs uppercase tracking-wide text-muted-foreground">
           Current Price
