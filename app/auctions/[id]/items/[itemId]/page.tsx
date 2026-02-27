@@ -1,9 +1,11 @@
 // app/auctions/[id]/items/[itemId]/page.tsx
-// Public page: show item details + bidding
+// Public page: show item details + bidding + real-time bid history + countdown timer
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import CountdownTimer from "./CountdownTimer";
 import BidBox from "./BidBox";
+import BidHistory from "./BidHistory";
 
 async function createClient() {
   const cookieStorePromise = cookies();
@@ -90,6 +92,13 @@ export default async function ItemPage({ params }: any) {
   const increment = inc ? Number(inc.increment) : 1;
   const nextMinBid = currentPrice + increment;
 
+  // Fetch bid history
+  const { data: bidHistory } = await supabase
+    .from("bids")
+    .select("*")
+    .eq("item_id", itemId)
+    .order("created_at", { ascending: false });
+
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
       {/* Breadcrumb */}
@@ -106,6 +115,14 @@ export default async function ItemPage({ params }: any) {
       {/* Title */}
       <h1 className="text-3xl font-semibold">{item.title}</h1>
 
+      {/* Countdown Timer */}
+      {event?.ends_at && (
+        <CountdownTimer
+          eventId={event.id}
+          initialEndTime={event.ends_at}
+        />
+      )}
+
       {/* Description */}
       <p className="text-muted-foreground whitespace-pre-line">
         {item.description || "No description provided."}
@@ -119,9 +136,13 @@ export default async function ItemPage({ params }: any) {
       {/* Bidding UI */}
       <BidBox
         itemId={item.id}
+        eventId={event.id}
         currentPrice={currentPrice}
         nextMinBid={nextMinBid}
       />
+
+      {/* Real-time Bid History */}
+      <BidHistory itemId={item.id} initialBids={bidHistory || []} />
 
       {/* Image gallery */}
       {Array.isArray(images) && images.length > 0 && (

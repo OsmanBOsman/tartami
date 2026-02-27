@@ -143,6 +143,28 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // -----------------------------
+  // ⭐ 2-MINUTE SOFT CLOSE LOGIC
+  // -----------------------------
+  const windowSeconds = event.soft_close_window_seconds ?? 120;
+  const extendSeconds = event.soft_close_extend_seconds ?? 120;
+
+  const timeRemaining = (endsAt.getTime() - now.getTime()) / 1000;
+
+  let extended = false;
+  let newEnd = endsAt;
+
+  if (timeRemaining <= windowSeconds) {
+    newEnd = new Date(endsAt.getTime() + extendSeconds * 1000);
+
+    await supabase
+      .from("auction_events")
+      .update({ ends_at: newEnd.toISOString() })
+      .eq("id", event.id);
+
+    extended = true;
+  }
+
   // Insert bid
   const { data: bid, error: bidError } = await supabase
     .from("bids")
@@ -171,6 +193,8 @@ export async function POST(req: NextRequest) {
     {
       success: true,
       bid,
+      extended,
+      newEndTime: newEnd,
       nextMinBid: amount + (await getIncrement(supabase, incrementTableId, amount)),
     },
     { status: 200 }
