@@ -3,6 +3,7 @@
 import { useState } from "react";
 import FullScreenImageViewer from "@/components/FullScreenImageViewer";
 import ThumbnailStrip from "@/components/ThumbnailStrip";
+import ZoomImage from "@/components/ZoomImage";
 
 export default function ImageGallery({ images }: { images: any[] }) {
   const [viewerIndex, setViewerIndex] = useState(-1);
@@ -12,12 +13,9 @@ export default function ImageGallery({ images }: { images: any[] }) {
       {/* Main grid */}
       <div className="grid grid-cols-2 gap-4">
         {images.map((img, i) => (
-          <img
-            key={img.id}
-            src={img.url}
-            className="rounded border cursor-pointer"
-            onClick={() => setViewerIndex(i)}
-          />
+          <div key={img.id} onClick={() => setViewerIndex(i)}>
+            <ZoomImage src={img.url} alt="Item image" zoom={2} />
+          </div>
         ))}
       </div>
 

@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import FullScreenImageViewer from "@/components/FullScreenImageViewer";
 import ThumbnailStrip from "@/components/ThumbnailStrip";
+import ZoomImage from "@/components/ZoomImage";
 
 export default function ItemImagesPage() {
   const router = useRouter();
@@ -233,12 +234,9 @@ export default function ItemImagesPage() {
               onDrop={() => handleDrop(index)}
               className="space-y-2 cursor-move"
             >
-              <img
-                src={img.url}
-                alt="Item image"
-                className="rounded border cursor-pointer"
-                onClick={() => setViewerIndex(index)}
-              />
+              <div onClick={() => setViewerIndex(index)}>
+                <ZoomImage src={img.url} alt="Item image" zoom={2} />
+              </div>
 
               {img.is_primary && (
                 <div className="text-xs text-green-700 font-medium">
