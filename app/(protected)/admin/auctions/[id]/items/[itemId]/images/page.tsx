@@ -14,6 +14,7 @@ export default function ItemImagesPage() {
   const id = routeParams.id as string;
   const itemId = routeParams.itemId as string;
 
+  // Correct Supabase client (2-argument version)
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
@@ -89,7 +90,8 @@ export default function ItemImagesPage() {
   async function uploadSelectedFile(selectedFile: File) {
     const optimized = await compressToWebP(selectedFile);
 
-    const filePath = `${itemId}/${Date.now()}-${optimized.name}`;
+    // ⭐ FIXED PATH — matches your bucket structure exactly
+    const filePath = `items/${itemId}/${Date.now()}-${optimized.name}`;
 
     const { error: storageError } = await supabase.storage
       .from("item-images")

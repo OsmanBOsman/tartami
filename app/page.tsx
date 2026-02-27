@@ -1,58 +1,148 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
+// app/page.tsx
+// Public Homepage – lists all auction events (Live, Upcoming, Ended)
+
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import Link from "next/link";
-import { Suspense } from "react";
 
-export default function Home() {
-  return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
-            </div>
-            {!hasEnvVars ? (
-              <EnvVarWarning />
-            ) : (
-              <Suspense>
-                <AuthButton />
-              </Suspense>
-            )}
-          </div>
-        </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          <Hero />
-          <main className="flex-1 flex flex-col gap-6 px-4">
-            <h2 className="font-medium text-xl mb-4">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
+async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+}
+
+function computeStatus(event: any): string {
+  const now = new Date();
+  const start = event.starts_at ? new Date(event.starts_at) : null;
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+
+  if (start && now < start) return "Upcoming";
+  if (start && end && now >= start && now <= end) return "Live";
+  if (end && now > end) return "Ended";
+
+  return "Auction";
+}
+
+export default async function HomePage() {
+  const supabase = await createClient();
+
+  // Fetch all auction events
+  const { data: events } = await supabase
+    .from("auction_events")
+    .select("*")
+    .order("starts_at", { ascending: true });
+
+  const live: any[] = [];
+  const upcoming: any[] = [];
+  const ended: any[] = [];
+
+  for (const e of events || []) {
+    const status = computeStatus(e);
+    if (status === "Live") live.push(e);
+    else if (status === "Upcoming") upcoming.push(e);
+    else ended.push(e);
+  }
+
+  function StatusBadge({ status }: { status: string }) {
+    return (
+      <span
+        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+          status === "Live"
+            ? "bg-green-100 text-green-800"
+            : status === "Upcoming"
+            ? "bg-amber-100 text-amber-800"
+            : status === "Ended"
+            ? "bg-red-100 text-red-800"
+            : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {status}
+      </span>
+    );
+  }
+
+  function AuctionList({ title, list }: any) {
+    if (!list || list.length === 0) return null;
+
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">{title}</h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {list.map((event: any) => {
+            const status = computeStatus(event);
+
+            return (
+              <Link
+                key={event.id}
+                href={`/auctions/${event.id}`}
+                className="border rounded-lg p-4 hover:shadow transition space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-lg truncate">
+                    {event.title || `Auction #${event.id}`}
+                  </div>
+                  <StatusBadge status={status} />
+                </div>
+
+                {event.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {event.description}
+                  </p>
+                )}
+
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {event.starts_at && (
+                    <div>
+                      <span className="font-medium text-foreground">
+                        Starts:
+                      </span>{" "}
+                      {new Date(event.starts_at).toLocaleString()}
+                    </div>
+                  )}
+                  {event.ends_at && (
+                    <div>
+                      <span className="font-medium text-foreground">
+                        Ends:
+                      </span>{" "}
+                      {new Date(event.ends_at).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
-
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
       </div>
-    </main>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-10 max-w-6xl mx-auto">
+      <h1 className="text-3xl font-semibold">Tartami Auctions</h1>
+
+      {/* Live Auctions */}
+      <AuctionList title="Live Auctions" list={live} />
+
+      {/* Upcoming Auctions */}
+      <AuctionList title="Upcoming Auctions" list={upcoming} />
+
+      {/* Ended Auctions */}
+      <AuctionList title="Past Auctions" list={ended} />
+
+      {events?.length === 0 && (
+        <p className="text-muted-foreground">No auctions available.</p>
+      )}
+    </div>
   );
 }
