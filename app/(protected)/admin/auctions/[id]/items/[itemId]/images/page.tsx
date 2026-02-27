@@ -4,6 +4,7 @@ import React, { useState, useEffect, DragEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
 import FullScreenImageViewer from "@/components/FullScreenImageViewer";
+import ThumbnailStrip from "@/components/ThumbnailStrip";
 
 export default function ItemImagesPage() {
   const router = useRouter();
@@ -266,6 +267,15 @@ export default function ItemImagesPage() {
           <div className="text-muted-foreground">No images yet.</div>
         )}
       </div>
+
+      {/* Thumbnail strip */}
+      {images.length > 0 && (
+        <ThumbnailStrip
+          images={images}
+          activeIndex={viewerIndex >= 0 ? viewerIndex : 0}
+          onSelect={(i) => setViewerIndex(i)}
+        />
+      )}
 
       {/* Full-screen viewer */}
       {viewerIndex >= 0 && (
