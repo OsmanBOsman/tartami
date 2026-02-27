@@ -85,6 +85,7 @@ export default function ItemImagesPage() {
     });
   }
 
+  // --- UPLOAD LOGIC ---
   async function uploadSelectedFile(selectedFile: File) {
     const optimized = await compressToWebP(selectedFile);
 
@@ -109,6 +110,7 @@ export default function ItemImagesPage() {
       item_id: itemId,
       url: publicUrl.publicUrl,
       position: nextPosition,
+      is_primary: images.length === 0, // auto-primary for first image
     });
 
     router.refresh();
@@ -119,6 +121,7 @@ export default function ItemImagesPage() {
     await uploadSelectedFile(file);
   }
 
+  // --- DELETE IMAGE ---
   async function deleteImage(image: any) {
     const path = image.url.split("/item-images/")[1];
 
@@ -129,6 +132,7 @@ export default function ItemImagesPage() {
     router.refresh();
   }
 
+  // --- SET PRIMARY ---
   async function setPrimary(img: any) {
     await supabase
       .from("item_images")
@@ -166,7 +170,7 @@ export default function ItemImagesPage() {
     setDragIndex(null);
   }
 
-  // Drag & Drop Upload Handlers
+  // --- DRAG & DROP UPLOAD ---
   function handleDrag(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
