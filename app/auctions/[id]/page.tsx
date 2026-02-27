@@ -6,24 +6,27 @@ import { createServerClient } from "@supabase/ssr";
 import Link from "next/link";
 
 async function createClient() {
-  const cookieStore = await cookies();
+  const cookieStorePromise = cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        async get(name: string) {
+          const store = await cookieStorePromise;
+          return store.get(name)?.value;
         },
       },
     }
   );
 }
 
-export default async function AuctionEventPage({ params }: any) {
-  const supabase = await createClient();
+export default async function AuctionEventPage(props: any) {
+  const params = await props.params; // FIX: params is a Promise
   const eventId = params.id;
+
+  const supabase = await createClient();
 
   // Fetch auction event
   const { data: event } = await supabase
@@ -53,7 +56,6 @@ export default async function AuctionEventPage({ params }: any) {
     .eq("status", "approved")
     .order("created_at", { ascending: false });
 
-  // Auction status helper
   function computeStatus(e: any): string {
     const now = new Date();
     const start = e.starts_at ? new Date(e.starts_at) : null;
@@ -164,7 +166,7 @@ export default async function AuctionEventPage({ params }: any) {
                   </div>
 
                   <div className="text-sm font-medium">
-                    Starting: ${item.starting_price}
+                    Starting: ${item.starting_bid}
                   </div>
                 </div>
               </Link>

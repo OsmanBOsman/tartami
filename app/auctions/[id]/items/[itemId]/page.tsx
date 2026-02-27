@@ -1,19 +1,21 @@
 // app/auctions/[id]/items/[itemId]/page.tsx
-// Public page: show item details
+// Public page: show item details + bidding
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import BidBox from "./BidBox";
 
 async function createClient() {
-  const cookieStore = await cookies();
+  const cookieStorePromise = cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        async get(name: string) {
+          const store = await cookieStorePromise;
+          return store.get(name)?.value;
         },
       },
     }
@@ -21,33 +23,32 @@ async function createClient() {
 }
 
 export default async function ItemPage({ params }: any) {
-  const { id, itemId } = params; // auctionId = id
+  const { id: eventId, itemId } = await params;
 
   const supabase = await createClient();
 
-  // Fetch auction
-  const { data: auction } = await supabase
-    .from("auctions")
+  // Fetch auction event
+  const { data: event } = await supabase
+    .from("auction_events")
     .select("*")
-    .eq("id", id)
+    .eq("id", eventId)
     .single();
 
-  // Fetch item + consignor
+  // Fetch item
   const { data: item } = await supabase
     .from("auction_items")
     .select("*, consignor:consignor_id(username)")
     .eq("id", itemId)
-    .eq("auction_id", id)
+    .eq("event_id", eventId)
     .single();
 
-  // Fetch images (primary first)
+  // Fetch images
   const { data: images } = await supabase
     .from("item_images")
     .select("*")
     .eq("item_id", itemId)
     .order("is_primary", { ascending: false })
-    .order("position", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("position", { ascending: true });
 
   if (!item) {
     return (
@@ -60,13 +61,42 @@ export default async function ItemPage({ params }: any) {
     );
   }
 
+  // Fetch highest bid
+  const { data: latestBid } = await supabase
+    .from("bids")
+    .select("*")
+    .eq("item_id", itemId)
+    .order("amount", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const currentPrice = latestBid
+    ? Number(latestBid.amount)
+    : Number(item.starting_bid);
+
+  // Load increment table
+  const incrementTableId = event.increment_table_id;
+
+  const { data: inc } = await supabase
+    .from("bid_increments")
+    .select("*")
+    .eq("table_id", incrementTableId)
+    .lte("min_amount", currentPrice)
+    .or(`max_amount.is.null,max_amount.gte.${currentPrice}`)
+    .order("min_amount", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const increment = inc ? Number(inc.increment) : 1;
+  const nextMinBid = currentPrice + increment;
+
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
       {/* Breadcrumb */}
       <div className="text-sm text-muted-foreground space-x-1">
         <span>Auctions</span>
         <span>/</span>
-        <span>{auction?.title || `Auction #${id}`}</span>
+        <span>{event?.title || `Auction #${eventId}`}</span>
         <span>/</span>
         <span className="text-foreground font-medium">
           {item.title || `Item #${itemId}`}
@@ -81,22 +111,23 @@ export default async function ItemPage({ params }: any) {
         {item.description || "No description provided."}
       </p>
 
-      {/* Price */}
-      <div className="text-lg font-medium">
-        Starting Price: ${item.starting_price}
-      </div>
-
       {/* Consignor */}
       <div className="text-sm text-muted-foreground">
         Consignor: {item.consignor?.username || "Unknown"}
       </div>
+
+      {/* Bidding UI */}
+      <BidBox
+        itemId={item.id}
+        currentPrice={currentPrice}
+        nextMinBid={nextMinBid}
+      />
 
       {/* Image gallery */}
       {Array.isArray(images) && images.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Images</h2>
 
-          {/* Primary image */}
           <div className="border rounded-lg overflow-hidden">
             <img
               src={images[0].url}
@@ -105,7 +136,6 @@ export default async function ItemPage({ params }: any) {
             />
           </div>
 
-          {/* Thumbnails */}
           {images.length > 1 && (
             <div className="grid grid-cols-3 gap-3">
               {images.map((img: any) => (
