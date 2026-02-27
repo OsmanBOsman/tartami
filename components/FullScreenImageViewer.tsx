@@ -19,14 +19,17 @@ export default function FullScreenImageViewer({
   // --- Fade transition state ---
   const [fadeKey, setFadeKey] = useState(0);
 
-  // --- Pinch-to-zoom state ---
+  // --- Pinch + double-tap zoom state ---
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [scale, setScale] = useState(1);
   const [lastScale, setLastScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
 
-  // --- Track touches ---
+  // --- Double-tap detection ---
+  const lastTapRef = useRef(0);
+
+  // --- Touch tracking ---
   const touchData = useRef({
     initialDistance: 0,
     lastTouchX: 0,
@@ -39,7 +42,7 @@ export default function FullScreenImageViewer({
     setLastScale(1);
     setPosition({ x: 0, y: 0 });
     setLastPosition({ x: 0, y: 0 });
-    setFadeKey((k) => k + 1); // triggers fade animation
+    setFadeKey((k) => k + 1);
   }
 
   // --- Keyboard navigation ---
@@ -64,8 +67,35 @@ export default function FullScreenImageViewer({
     return () => window.removeEventListener("keydown", handleKey);
   }, [index, images.length, onClose, setIndex]);
 
-  // --- Touch handlers (pinch + swipe) ---
+  // --- Double-tap to zoom ---
+  function handleDoubleTap(e: React.TouchEvent) {
+    const now = Date.now();
+    const timeSince = now - lastTapRef.current;
+
+    if (timeSince < 300) {
+      // Double-tap detected
+      if (scale === 1) {
+        // Zoom in to 2× centered on tap
+        const tapX = e.touches[0].clientX - window.innerWidth / 2;
+        const tapY = e.touches[0].clientY - window.innerHeight / 2;
+
+        setScale(2);
+        setLastScale(2);
+        setPosition({ x: tapX, y: tapY });
+        setLastPosition({ x: tapX, y: tapY });
+      } else {
+        // Reset zoom
+        resetZoomAndFade();
+      }
+    }
+
+    lastTapRef.current = now;
+  }
+
+  // --- Touch handlers (pinch + swipe + double-tap) ---
   function handleTouchStart(e: React.TouchEvent) {
+    handleDoubleTap(e);
+
     if (e.touches.length === 2) {
       const dist = getDistance(e.touches);
       touchData.current.initialDistance = dist;
@@ -132,7 +162,7 @@ export default function FullScreenImageViewer({
       onTouchEnd={handleTouchEnd}
     >
       <img
-        key={fadeKey} // triggers fade animation
+        key={fadeKey}
         ref={imgRef}
         src={images[index].url}
         className="max-h-[90vh] max-w-[90vw] rounded shadow-lg touch-none opacity-0 animate-fadeIn"
