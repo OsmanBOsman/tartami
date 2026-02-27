@@ -17,23 +17,30 @@ export default function FullScreenImageViewer({
   const onClose = onCloseAction;
   const setIndex = setIndexAction;
 
+  // --- Fade transition state ---
   const [fadeKey, setFadeKey] = useState(0);
+
+  // --- Grid modal state ---
   const [showGrid, setShowGrid] = useState(false);
 
+  // --- Pinch + double-tap zoom state ---
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [scale, setScale] = useState(1);
   const [lastScale, setLastScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
 
+  // --- Double-tap detection ---
   const lastTapRef = useRef(0);
 
+  // --- Touch tracking ---
   const touchData = useRef({
     initialDistance: 0,
     lastTouchX: 0,
     lastTouchY: 0,
   });
 
+  // --- Reset zoom + trigger fade ---
   function resetZoomAndFade() {
     setScale(1);
     setLastScale(1);
@@ -42,6 +49,7 @@ export default function FullScreenImageViewer({
     setFadeKey((k) => k + 1);
   }
 
+  // --- Keyboard navigation ---
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -61,6 +69,18 @@ export default function FullScreenImageViewer({
     return () => window.removeEventListener("keydown", handleKey);
   }, [index, images.length, onClose, setIndex]);
 
+  // --- Preload next/previous images ---
+  useEffect(() => {
+    const preload = (url: string) => {
+      const img = new Image();
+      img.src = url;
+    };
+
+    if (images[index + 1]) preload(images[index + 1].url);
+    if (images[index - 1]) preload(images[index - 1].url);
+  }, [index, images]);
+
+  // --- Double-tap to zoom ---
   function handleDoubleTap(e: React.TouchEvent) {
     const now = Date.now();
     const timeSince = now - lastTapRef.current;
@@ -82,6 +102,7 @@ export default function FullScreenImageViewer({
     lastTapRef.current = now;
   }
 
+  // --- Touch handlers (pinch + swipe + double-tap) ---
   function handleTouchStart(e: React.TouchEvent) {
     handleDoubleTap(e);
 
