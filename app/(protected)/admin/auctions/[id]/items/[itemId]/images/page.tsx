@@ -32,12 +32,57 @@ export default function ItemImagesPage({ params }: any) {
     loadImages();
   }, [supabase, params.itemId]);
 
+  // --- CLIENT-SIDE COMPRESSION + WEBP CONVERSION ---
+  async function compressToWebP(inputFile: File): Promise<File> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxWidth = 1600;
+
+        const scale = Math.min(1, maxWidth / img.width);
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(inputFile);
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return resolve(inputFile);
+
+            const webpFile = new File([blob], inputFile.name.replace(/\.\w+$/, ".webp"), {
+              type: "image/webp",
+            });
+
+            resolve(webpFile);
+          },
+          "image/webp",
+          0.8 // quality
+        );
+      };
+
+      reader.readAsDataURL(inputFile);
+    });
+  }
+
   async function uploadSelectedFile(selectedFile: File) {
-    const filePath = `${params.itemId}/${Date.now()}-${selectedFile.name}`;
+    // Convert + compress
+    const optimized = await compressToWebP(selectedFile);
+
+    const filePath = `${params.itemId}/${Date.now()}-${optimized.name}`;
 
     const { error: storageError } = await supabase.storage
       .from("item-images")
-      .upload(filePath, selectedFile);
+      .upload(filePath, optimized);
 
     if (storageError) {
       console.error(storageError);
