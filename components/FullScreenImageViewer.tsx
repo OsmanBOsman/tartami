@@ -73,9 +73,7 @@ export default function FullScreenImageViewer({
     const timeSince = now - lastTapRef.current;
 
     if (timeSince < 300) {
-      // Double-tap detected
       if (scale === 1) {
-        // Zoom in to 2× centered on tap
         const tapX = e.touches[0].clientX - window.innerWidth / 2;
         const tapY = e.touches[0].clientY - window.innerHeight / 2;
 
@@ -84,7 +82,6 @@ export default function FullScreenImageViewer({
         setPosition({ x: tapX, y: tapY });
         setLastPosition({ x: tapX, y: tapY });
       } else {
-        // Reset zoom
         resetZoomAndFade();
       }
     }
@@ -161,6 +158,11 @@ export default function FullScreenImageViewer({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Image counter */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white text-sm bg-black/40 px-3 py-1 rounded-full">
+        {index + 1} / {images.length}
+      </div>
+
       <img
         key={fadeKey}
         ref={imgRef}
@@ -171,7 +173,7 @@ export default function FullScreenImageViewer({
           transform: `scale(${scale}) translate(${position.x / scale}px, ${
             position.y / scale
           }px)`,
-          transition: "transform 0.05s linear",
+          transition: "transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       />
 
