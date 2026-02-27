@@ -7,7 +7,8 @@ export default async function ItemPage({
 }: {
   params: { itemId: string; slug: string }
 }) {
-  // IMPORTANT: createClient() returns a Promise
+  const { itemId } = params; // ✅ SAFE in server components
+
   const supabase = await createClient()
 
   const {
@@ -16,10 +17,11 @@ export default async function ItemPage({
 
   return (
     <div>
-      <h1>Item {params.itemId}</h1>
-      <ItemBiddingPanel itemId={params.itemId} userId={user?.id} />
+      <h1>Item {itemId}</h1>
 
-      <BidHistoryPanel itemId={params.itemId} />
+      <ItemBiddingPanel itemId={itemId} userId={user?.id} />
+
+      <BidHistoryPanel itemId={itemId} />
     </div>
   )
 }

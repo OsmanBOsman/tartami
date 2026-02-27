@@ -1,11 +1,16 @@
 "use client";
 
-import { useState, useEffect, DragEvent } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, DragEvent } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { createBrowserClient } from "@supabase/ssr";
+import FullScreenImageViewer from "@/components/FullScreenImageViewer";
 
-export default function ItemImagesPage({ params }: any) {
+export default function ItemImagesPage() {
   const router = useRouter();
+  const routeParams = useParams();
+
+  const id = routeParams.id as string;
+  const itemId = routeParams.itemId as string;
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,6 +20,8 @@ export default function ItemImagesPage({ params }: any) {
   const [file, setFile] = useState<File | null>(null);
   const [images, setImages] = useState<any[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [viewerIndex, setViewerIndex] = useState(-1);
 
   // Load existing images
   useEffect(() => {
@@ -22,15 +29,15 @@ export default function ItemImagesPage({ params }: any) {
       const { data } = await supabase
         .from("item_images")
         .select("*")
-        .eq("item_id", params.itemId)
-        .order("is_primary", { ascending: false })
+        .eq("item_id", itemId)
+        .order("position", { ascending: true })
         .order("created_at", { ascending: true });
 
       setImages(data || []);
     }
 
     loadImages();
-  }, [supabase, params.itemId]);
+  }, [supabase, itemId]);
 
   // --- CLIENT-SIDE COMPRESSION + WEBP CONVERSION ---
   async function compressToWebP(inputFile: File): Promise<File> {
@@ -59,14 +66,16 @@ export default function ItemImagesPage({ params }: any) {
           (blob) => {
             if (!blob) return resolve(inputFile);
 
-            const webpFile = new File([blob], inputFile.name.replace(/\.\w+$/, ".webp"), {
-              type: "image/webp",
-            });
+            const webpFile = new File(
+              [blob],
+              inputFile.name.replace(/\.\w+$/, ".webp"),
+              { type: "image/webp" }
+            );
 
             resolve(webpFile);
           },
           "image/webp",
-          0.8 // quality
+          0.8
         );
       };
 
@@ -75,10 +84,9 @@ export default function ItemImagesPage({ params }: any) {
   }
 
   async function uploadSelectedFile(selectedFile: File) {
-    // Convert + compress
     const optimized = await compressToWebP(selectedFile);
 
-    const filePath = `${params.itemId}/${Date.now()}-${optimized.name}`;
+    const filePath = `${itemId}/${Date.now()}-${optimized.name}`;
 
     const { error: storageError } = await supabase.storage
       .from("item-images")
@@ -93,9 +101,12 @@ export default function ItemImagesPage({ params }: any) {
       .from("item-images")
       .getPublicUrl(filePath);
 
+    const nextPosition = images.length;
+
     await supabase.from("item_images").insert({
-      item_id: params.itemId,
+      item_id: itemId,
       url: publicUrl.publicUrl,
+      position: nextPosition,
     });
 
     router.refresh();
@@ -120,7 +131,7 @@ export default function ItemImagesPage({ params }: any) {
     await supabase
       .from("item_images")
       .update({ is_primary: false })
-      .eq("item_id", params.itemId);
+      .eq("item_id", itemId);
 
     await supabase
       .from("item_images")
@@ -130,7 +141,30 @@ export default function ItemImagesPage({ params }: any) {
     router.refresh();
   }
 
-  // Drag & Drop Handlers
+  // --- DRAG TO REORDER ---
+  function handleDragStart(index: number) {
+    setDragIndex(index);
+  }
+
+  async function handleDrop(index: number) {
+    if (dragIndex === null) return;
+
+    const updated = [...images];
+    const [moved] = updated.splice(dragIndex, 1);
+    updated.splice(index, 0, moved);
+
+    setImages(updated);
+
+    await Promise.all(
+      updated.map((img, i) =>
+        supabase.from("item_images").update({ position: i }).eq("id", img.id)
+      )
+    );
+
+    setDragIndex(null);
+  }
+
+  // Drag & Drop Upload Handlers
   function handleDrag(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -141,7 +175,7 @@ export default function ItemImagesPage({ params }: any) {
     }
   }
 
-  async function handleDrop(e: DragEvent) {
+  async function handleDropUpload(e: DragEvent) {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -155,12 +189,12 @@ export default function ItemImagesPage({ params }: any) {
     <div className="p-6 space-y-6 max-w-xl">
       <h1 className="text-2xl font-semibold">Item Images</h1>
 
-      {/* Drag & Drop Zone */}
+      {/* Drag & Drop Upload Zone */}
       <div
         onDragEnter={handleDrag}
         onDragOver={handleDrag}
         onDragLeave={handleDrag}
-        onDrop={handleDrop}
+        onDrop={handleDropUpload}
         className={`border-2 border-dashed rounded-lg p-6 text-center transition ${
           dragActive ? "border-primary bg-primary/10" : "border-muted"
         }`}
@@ -189,12 +223,20 @@ export default function ItemImagesPage({ params }: any) {
         <h2 className="text-xl font-semibold">Existing Images</h2>
 
         <div className="grid grid-cols-2 gap-4">
-          {images.map((img) => (
-            <div key={img.id} className="space-y-2">
+          {images.map((img, index) => (
+            <div
+              key={img.id}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => handleDrop(index)}
+              className="space-y-2 cursor-move"
+            >
               <img
                 src={img.url}
                 alt="Item image"
-                className="rounded border"
+                className="rounded border cursor-pointer"
+                onClick={() => setViewerIndex(index)}
               />
 
               {img.is_primary && (
@@ -224,6 +266,16 @@ export default function ItemImagesPage({ params }: any) {
           <div className="text-muted-foreground">No images yet.</div>
         )}
       </div>
+
+      {/* Full-screen viewer */}
+      {viewerIndex >= 0 && (
+        <FullScreenImageViewer
+          images={images}
+          index={viewerIndex}
+          setIndex={setViewerIndex}
+          onClose={() => setViewerIndex(-1)}
+        />
+      )}
     </div>
   );
 }

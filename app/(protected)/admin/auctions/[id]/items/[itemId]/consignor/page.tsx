@@ -1,9 +1,6 @@
-// app/(protected)/admin/auctions/[eventId]/items/[itemId]/consignor/page.tsx
-
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-// Create SSR client
 async function createClient() {
   const cookieStore = await cookies();
 
@@ -21,16 +18,16 @@ async function createClient() {
 }
 
 export default async function AssignConsignorPage({ params }: any) {
+  const { id, itemId } = params; // ✅ SAFE in server components
+
   const supabase = await createClient();
 
-  // Fetch item
   const { data: item } = await supabase
     .from("auction_items")
     .select("*")
-    .eq("id", params.itemId)
+    .eq("id", itemId)
     .single();
 
-  // Fetch approved users
   const { data: users } = await supabase
     .from("user_profiles")
     .select("id, username")
@@ -64,9 +61,7 @@ export default async function AssignConsignorPage({ params }: any) {
           ))}
         </select>
 
-        <button
-          className="px-4 py-2 bg-primary text-white rounded-md"
-        >
+        <button className="px-4 py-2 bg-primary text-white rounded-md">
           Save
         </button>
       </form>

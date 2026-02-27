@@ -21,20 +21,22 @@ async function createClient() {
 }
 
 export default async function ItemPage({ params }: any) {
+  const { id, itemId } = params; // ✅ SAFE in server components
+
   const supabase = await createClient();
 
   // Fetch item + consignor
   const { data: item } = await supabase
     .from("auction_items")
     .select("*, consignor:consignor_id(username)")
-    .eq("id", params.itemId)
+    .eq("id", itemId)
     .single();
 
   // Fetch images (primary first)
   const { data: images } = await supabase
     .from("item_images")
     .select("*")
-    .eq("item_id", params.itemId)
+    .eq("item_id", itemId)
     .order("is_primary", { ascending: false })
     .order("created_at", { ascending: true });
 
