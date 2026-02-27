@@ -18,18 +18,33 @@ async function createClient() {
   );
 }
 
+function computeStatus(event: any) {
+  const now = new Date();
+  const start = event.starts_at ? new Date(event.starts_at) : null;
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+
+  if (!start || !end) return "Draft";
+
+  if (now < start) return "Scheduled";
+  if (now >= start && now <= end) return "Live";
+  if (now > end) return "Ended";
+
+  return "Draft";
+}
+
 export default async function AdminAuctionsPage() {
   const supabase = await createClient();
 
   const { data: events } = await supabase
     .from("auction_events")
-    .select("*")
-    .order("start_at", { ascending: false });
+    .select("*, auction_items(count)")
+    .order("starts_at", { ascending: false });
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Auction Events</h1>
+
         <Link
           href="/admin/auctions/new"
           className="px-4 py-2 bg-primary text-white rounded-md"
@@ -39,18 +54,59 @@ export default async function AdminAuctionsPage() {
       </div>
 
       <div className="border rounded-lg divide-y">
-        {events?.map((event: any) => (
-          <Link
-            key={event.id}
-            href={`/admin/auctions/${event.id}`}
-            className="block p-4 hover:bg-muted transition"
-          >
-            <div className="font-medium">{event.title}</div>
-            <div className="text-sm text-muted-foreground">
-              {event.event_type} • {event.status}
+        {events?.map((event: any) => {
+          const status = computeStatus(event);
+          const itemCount = event.auction_items?.[0]?.count ?? 0;
+
+          return (
+            <div
+              key={event.id}
+              className="p-4 flex items-center justify-between hover:bg-muted transition"
+            >
+              <div>
+                <div className="font-medium">{event.title}</div>
+
+                <div className="text-sm text-muted-foreground space-x-2">
+                  <span>{status}</span>
+                  <span>•</span>
+                  <span>{itemCount} items</span>
+                </div>
+
+                <div className="text-xs text-muted-foreground mt-1">
+                  {event.starts_at && (
+                    <span>
+                      Starts: {new Date(event.starts_at).toLocaleString()}
+                    </span>
+                  )}
+                  {event.ends_at && (
+                    <>
+                      <span> • </span>
+                      <span>
+                        Ends: {new Date(event.ends_at).toLocaleString()}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <Link
+                  href={`/admin/auctions/${event.id}/items`}
+                  className="text-sm underline"
+                >
+                  Manage Items
+                </Link>
+
+                <Link
+                  href={`/admin/auctions/${event.id}`}
+                  className="text-sm underline"
+                >
+                  Edit
+                </Link>
+              </div>
             </div>
-          </Link>
-        ))}
+          );
+        })}
 
         {events?.length === 0 && (
           <div className="p-4 text-muted-foreground">No events yet.</div>

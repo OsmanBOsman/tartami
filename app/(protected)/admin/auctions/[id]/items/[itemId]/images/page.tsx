@@ -14,7 +14,6 @@ export default function ItemImagesPage() {
   const id = routeParams.id as string;
   const itemId = routeParams.itemId as string;
 
-  // Correct Supabase client (2-argument version)
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
@@ -33,8 +32,7 @@ export default function ItemImagesPage() {
         .from("item_images")
         .select("*")
         .eq("item_id", itemId)
-        .order("position", { ascending: true })
-        .order("created_at", { ascending: true });
+        .order("position", { ascending: true });
 
       setImages(data || []);
     }
@@ -42,7 +40,7 @@ export default function ItemImagesPage() {
     loadImages();
   }, [supabase, itemId]);
 
-  // --- CLIENT-SIDE COMPRESSION + WEBP CONVERSION ---
+  // --- CLIENT-SIDE COMPRESSION + WEBP ---
   async function compressToWebP(inputFile: File): Promise<File> {
     return new Promise((resolve) => {
       const img = new Image();
@@ -86,11 +84,10 @@ export default function ItemImagesPage() {
     });
   }
 
-  // --- UPLOAD LOGIC ---
+  // --- UPLOAD ---
   async function uploadSelectedFile(selectedFile: File) {
     const optimized = await compressToWebP(selectedFile);
 
-    // ⭐ FIXED PATH — matches your bucket structure exactly
     const filePath = `items/${itemId}/${Date.now()}-${optimized.name}`;
 
     const { error: storageError } = await supabase.storage
@@ -102,17 +99,16 @@ export default function ItemImagesPage() {
       return;
     }
 
-    const { data: publicUrl } = supabase.storage
-      .from("item-images")
-      .getPublicUrl(filePath);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("item-images").getPublicUrl(filePath);
 
     const nextPosition = images.length;
 
     await supabase.from("item_images").insert({
       item_id: itemId,
-      url: publicUrl.publicUrl,
+      url: publicUrl,
       position: nextPosition,
-      is_primary: images.length === 0, // auto-primary for first image
     });
 
     router.refresh();
@@ -123,9 +119,9 @@ export default function ItemImagesPage() {
     await uploadSelectedFile(file);
   }
 
-  // --- DELETE IMAGE ---
+  // --- DELETE ---
   async function deleteImage(image: any) {
-    const path = image.url.split("/item-images/")[1];
+    const path = image.url.split("/object/public/")[1];
 
     await supabase.storage.from("item-images").remove([path]);
 
@@ -137,19 +133,14 @@ export default function ItemImagesPage() {
   // --- SET PRIMARY ---
   async function setPrimary(img: any) {
     await supabase
-      .from("item_images")
-      .update({ is_primary: false })
-      .eq("item_id", itemId);
-
-    await supabase
-      .from("item_images")
-      .update({ is_primary: true })
-      .eq("id", img.id);
+      .from("auction_items")
+      .update({ primary_image_url: img.url })
+      .eq("id", itemId);
 
     router.refresh();
   }
 
-  // --- DRAG TO REORDER ---
+  // --- REORDER ---
   function handleDragStart(index: number) {
     setDragIndex(index);
   }
@@ -161,11 +152,16 @@ export default function ItemImagesPage() {
     const [moved] = updated.splice(dragIndex, 1);
     updated.splice(index, 0, moved);
 
-    setImages(updated);
+    const normalized = updated.map((img, i) => ({
+      ...img,
+      position: i,
+    }));
+
+    setImages(normalized);
 
     await Promise.all(
-      updated.map((img, i) =>
-        supabase.from("item_images").update({ position: i }).eq("id", img.id)
+      normalized.map((img) =>
+        supabase.from("item_images").update({ position: img.position }).eq("id", img.id)
       )
     );
 
@@ -197,7 +193,7 @@ export default function ItemImagesPage() {
     <div className="p-6 space-y-6 max-w-xl">
       <h1 className="text-2xl font-semibold">Item Images</h1>
 
-      {/* Drag & Drop Upload Zone */}
+      {/* Upload Zone */}
       <div
         onDragEnter={handleDrag}
         onDragOver={handleDrag}
@@ -226,7 +222,7 @@ export default function ItemImagesPage() {
         </button>
       </div>
 
-      {/* Existing images */}
+      {/* Existing Images */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Existing Images</h2>
 
@@ -243,12 +239,6 @@ export default function ItemImagesPage() {
               <div onClick={() => setViewerIndex(index)}>
                 <ZoomImage src={img.url} alt="Item image" zoom={2} />
               </div>
-
-              {img.is_primary && (
-                <div className="text-xs text-green-700 font-medium">
-                  Primary Image
-                </div>
-              )}
 
               <button
                 onClick={() => setPrimary(img)}
