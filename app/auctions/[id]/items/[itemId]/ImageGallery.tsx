@@ -23,7 +23,7 @@ export default function ImageGallery({ images }: { images: any[] }) {
       <ThumbnailStrip
         images={images}
         activeIndex={viewerIndex >= 0 ? viewerIndex : 0}
-        onSelect={(i) => setViewerIndex(i)}
+        onSelectAction={(i) => setViewerIndex(i)}
       />
 
       {/* Full-screen viewer */}
@@ -31,8 +31,8 @@ export default function ImageGallery({ images }: { images: any[] }) {
         <FullScreenImageViewer
           images={images}
           index={viewerIndex}
-          setIndex={setViewerIndex}
-          onClose={() => setViewerIndex(-1)}
+          setIndexAction={setViewerIndex}
+          onCloseAction={() => setViewerIndex(-1)}
         />
       )}
     </>

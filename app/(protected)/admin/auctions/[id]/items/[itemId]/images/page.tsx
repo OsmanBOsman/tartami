@@ -271,7 +271,7 @@ export default function ItemImagesPage() {
         <ThumbnailStrip
           images={images}
           activeIndex={viewerIndex >= 0 ? viewerIndex : 0}
-          onSelect={(i) => setViewerIndex(i)}
+          onSelectAction={(i) => setViewerIndex(i)}
         />
       )}
 
@@ -280,8 +280,8 @@ export default function ItemImagesPage() {
         <FullScreenImageViewer
           images={images}
           index={viewerIndex}
-          setIndex={setViewerIndex}
-          onClose={() => setViewerIndex(-1)}
+          setIndexAction={setViewerIndex}
+          onCloseAction={() => setViewerIndex(-1)}
         />
       )}
     </div>

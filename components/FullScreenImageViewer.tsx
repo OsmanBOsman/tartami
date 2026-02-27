@@ -13,7 +13,7 @@ export default function FullScreenImageViewer({
   onCloseAction: () => void;
   setIndexAction: (i: number) => void;
 }) {
-  // local aliases so JSX stays readable
+  // Local aliases for readability
   const onClose = onCloseAction;
   const setIndex = setIndexAction;
 
