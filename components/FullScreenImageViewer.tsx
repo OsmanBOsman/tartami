@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import ImageGridModal from "./ImageGridModal";
 
 export default function FullScreenImageViewer({
   images,
@@ -16,27 +17,23 @@ export default function FullScreenImageViewer({
   const onClose = onCloseAction;
   const setIndex = setIndexAction;
 
-  // --- Fade transition state ---
   const [fadeKey, setFadeKey] = useState(0);
+  const [showGrid, setShowGrid] = useState(false);
 
-  // --- Pinch + double-tap zoom state ---
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [scale, setScale] = useState(1);
   const [lastScale, setLastScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
 
-  // --- Double-tap detection ---
   const lastTapRef = useRef(0);
 
-  // --- Touch tracking ---
   const touchData = useRef({
     initialDistance: 0,
     lastTouchX: 0,
     lastTouchY: 0,
   });
 
-  // --- Reset zoom + trigger fade ---
   function resetZoomAndFade() {
     setScale(1);
     setLastScale(1);
@@ -45,21 +42,18 @@ export default function FullScreenImageViewer({
     setFadeKey((k) => k + 1);
   }
 
-  // --- Keyboard navigation ---
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
 
       if (e.key === "ArrowRight") {
-        const next = (index + 1) % images.length;
         resetZoomAndFade();
-        setIndex(next);
+        setIndex((index + 1) % images.length);
       }
 
       if (e.key === "ArrowLeft") {
-        const prev = (index - 1 + images.length) % images.length;
         resetZoomAndFade();
-        setIndex(prev);
+        setIndex((index - 1 + images.length) % images.length);
       }
     }
 
@@ -67,7 +61,6 @@ export default function FullScreenImageViewer({
     return () => window.removeEventListener("keydown", handleKey);
   }, [index, images.length, onClose, setIndex]);
 
-  // --- Double-tap to zoom ---
   function handleDoubleTap(e: React.TouchEvent) {
     const now = Date.now();
     const timeSince = now - lastTapRef.current;
@@ -89,7 +82,6 @@ export default function FullScreenImageViewer({
     lastTapRef.current = now;
   }
 
-  // --- Touch handlers (pinch + swipe + double-tap) ---
   function handleTouchStart(e: React.TouchEvent) {
     handleDoubleTap(e);
 
@@ -132,13 +124,11 @@ export default function FullScreenImageViewer({
 
     if (Math.abs(swipeDistance) > 50) {
       if (swipeDistance > 0) {
-        const next = Math.min(index + 1, images.length - 1);
         resetZoomAndFade();
-        setIndex(next);
+        setIndex(Math.min(index + 1, images.length - 1));
       } else {
-        const prev = Math.max(index - 1, 0);
         resetZoomAndFade();
-        setIndex(prev);
+        setIndex(Math.max(index - 1, 0));
       }
     }
   }
@@ -151,59 +141,82 @@ export default function FullScreenImageViewer({
   if (index < 0) return null;
 
   return (
-    <div
-      className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 overflow-hidden"
-      onClick={onClose}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Image counter */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white text-sm bg-black/40 px-3 py-1 rounded-full">
-        {index + 1} / {images.length}
-      </div>
-
-      <img
-        key={fadeKey}
-        ref={imgRef}
-        src={images[index].url}
-        className="max-h-[90vh] max-w-[90vw] rounded shadow-lg touch-none opacity-0 animate-fadeIn"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          transform: `scale(${scale}) translate(${position.x / scale}px, ${
-            position.y / scale
-          }px)`,
-          transition: "transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)",
-        }}
-      />
-
-      {images.length > 1 && scale === 1 && (
-        <>
-          <button
-            className="absolute left-6 text-white text-4xl"
-            onClick={(e) => {
-              e.stopPropagation();
-              resetZoomAndFade();
-              const prev = (index - 1 + images.length) % images.length;
-              setIndex(prev);
-            }}
-          >
-            ‹
-          </button>
-
-          <button
-            className="absolute right-6 text-white text-4xl"
-            onClick={(e) => {
-              e.stopPropagation();
-              resetZoomAndFade();
-              const next = (index + 1) % images.length;
-              setIndex(next);
-            }}
-          >
-            ›
-          </button>
-        </>
+    <>
+      {showGrid && (
+        <ImageGridModal
+          images={images}
+          onSelectAction={(i) => {
+            resetZoomAndFade();
+            setIndex(i);
+            setShowGrid(false);
+          }}
+          onCloseAction={() => setShowGrid(false)}
+        />
       )}
-    </div>
+
+      <div
+        className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 overflow-hidden"
+        onClick={onClose}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Image counter */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 text-white text-sm bg-black/40 px-3 py-1 rounded-full">
+          {index + 1} / {images.length}
+        </div>
+
+        {/* View All button */}
+        <button
+          className="absolute top-6 right-6 text-white text-sm bg-black/40 px-3 py-1 rounded-full"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowGrid(true);
+          }}
+        >
+          View All
+        </button>
+
+        <img
+          key={fadeKey}
+          ref={imgRef}
+          src={images[index].url}
+          className="max-h-[90vh] max-w-[90vw] rounded shadow-lg touch-none opacity-0 animate-fadeIn"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            transform: `scale(${scale}) translate(${position.x / scale}px, ${
+              position.y / scale
+            }px)`,
+            transition: "transform 0.25s cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
+        />
+
+        {images.length > 1 && scale === 1 && (
+          <>
+            <button
+              className="absolute left-6 text-white text-4xl"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetZoomAndFade();
+                setIndex((index - 1 + images.length) % images.length);
+              }}
+            >
+              ‹
+            </button>
+
+            <button
+              className="absolute right-6 text-white text-4xl"
+              onClick={(e) => {
+                e.stopPropagation();
+                resetZoomAndFade();
+                setIndex((index + 1) % images.length);
+              }}
+            >
+              ›
+            </button>
+          </>
+        )}
+      </div>
+    </>
   );
 }
