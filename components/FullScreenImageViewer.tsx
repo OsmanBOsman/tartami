@@ -16,6 +16,9 @@ export default function FullScreenImageViewer({
   const onClose = onCloseAction;
   const setIndex = setIndexAction;
 
+  // --- Fade transition state ---
+  const [fadeKey, setFadeKey] = useState(0);
+
   // --- Pinch-to-zoom state ---
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [scale, setScale] = useState(1);
@@ -30,6 +33,15 @@ export default function FullScreenImageViewer({
     lastTouchY: 0,
   });
 
+  // --- Reset zoom + trigger fade ---
+  function resetZoomAndFade() {
+    setScale(1);
+    setLastScale(1);
+    setPosition({ x: 0, y: 0 });
+    setLastPosition({ x: 0, y: 0 });
+    setFadeKey((k) => k + 1); // triggers fade animation
+  }
+
   // --- Keyboard navigation ---
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -37,13 +49,13 @@ export default function FullScreenImageViewer({
 
       if (e.key === "ArrowRight") {
         const next = (index + 1) % images.length;
-        resetZoom();
+        resetZoomAndFade();
         setIndex(next);
       }
 
       if (e.key === "ArrowLeft") {
         const prev = (index - 1 + images.length) % images.length;
-        resetZoom();
+        resetZoomAndFade();
         setIndex(prev);
       }
     }
@@ -52,22 +64,12 @@ export default function FullScreenImageViewer({
     return () => window.removeEventListener("keydown", handleKey);
   }, [index, images.length, onClose, setIndex]);
 
-  // --- Reset zoom when switching images ---
-  function resetZoom() {
-    setScale(1);
-    setLastScale(1);
-    setPosition({ x: 0, y: 0 });
-    setLastPosition({ x: 0, y: 0 });
-  }
-
-  // --- Swipe + pinch handling ---
+  // --- Touch handlers (pinch + swipe) ---
   function handleTouchStart(e: React.TouchEvent) {
     if (e.touches.length === 2) {
-      // Pinch start
       const dist = getDistance(e.touches);
       touchData.current.initialDistance = dist;
     } else if (e.touches.length === 1) {
-      // Drag start
       touchData.current.lastTouchX = e.touches[0].clientX;
       touchData.current.lastTouchY = e.touches[0].clientY;
     }
@@ -75,13 +77,11 @@ export default function FullScreenImageViewer({
 
   function handleTouchMove(e: React.TouchEvent) {
     if (e.touches.length === 2) {
-      // Pinch zoom
       const dist = getDistance(e.touches);
       const scaleFactor = dist / touchData.current.initialDistance;
-      const newScale = Math.min(Math.max(lastScale * scaleFactor, 1), 4); // clamp 1–4
+      const newScale = Math.min(Math.max(lastScale * scaleFactor, 1), 4);
       setScale(newScale);
     } else if (e.touches.length === 1 && scale > 1) {
-      // Drag while zoomed
       const dx = e.touches[0].clientX - touchData.current.lastTouchX;
       const dy = e.touches[0].clientY - touchData.current.lastTouchY;
 
@@ -94,28 +94,24 @@ export default function FullScreenImageViewer({
 
   function handleTouchEnd(e: React.TouchEvent) {
     if (scale > 1) {
-      // Save last zoom + position
       setLastScale(scale);
       setLastPosition(position);
       return;
     }
 
-    // If not zooming → treat as swipe
-    if (e.changedTouches.length === 1) {
-      const startX = touchData.current.lastTouchX;
-      const endX = e.changedTouches[0].clientX;
-      const swipeDistance = startX - endX;
+    const startX = touchData.current.lastTouchX;
+    const endX = e.changedTouches[0].clientX;
+    const swipeDistance = startX - endX;
 
-      if (Math.abs(swipeDistance) > 50) {
-        if (swipeDistance > 0) {
-          const next = Math.min(index + 1, images.length - 1);
-          resetZoom();
-          setIndex(next);
-        } else {
-          const prev = Math.max(index - 1, 0);
-          resetZoom();
-          setIndex(prev);
-        }
+    if (Math.abs(swipeDistance) > 50) {
+      if (swipeDistance > 0) {
+        const next = Math.min(index + 1, images.length - 1);
+        resetZoomAndFade();
+        setIndex(next);
+      } else {
+        const prev = Math.max(index - 1, 0);
+        resetZoomAndFade();
+        setIndex(prev);
       }
     }
   }
@@ -136,9 +132,10 @@ export default function FullScreenImageViewer({
       onTouchEnd={handleTouchEnd}
     >
       <img
+        key={fadeKey} // triggers fade animation
         ref={imgRef}
         src={images[index].url}
-        className="max-h-[90vh] max-w-[90vw] rounded shadow-lg touch-none"
+        className="max-h-[90vh] max-w-[90vw] rounded shadow-lg touch-none opacity-0 animate-fadeIn"
         onClick={(e) => e.stopPropagation()}
         style={{
           transform: `scale(${scale}) translate(${position.x / scale}px, ${
@@ -154,7 +151,7 @@ export default function FullScreenImageViewer({
             className="absolute left-6 text-white text-4xl"
             onClick={(e) => {
               e.stopPropagation();
-              resetZoom();
+              resetZoomAndFade();
               const prev = (index - 1 + images.length) % images.length;
               setIndex(prev);
             }}
@@ -166,7 +163,7 @@ export default function FullScreenImageViewer({
             className="absolute right-6 text-white text-4xl"
             onClick={(e) => {
               e.stopPropagation();
-              resetZoom();
+              resetZoomAndFade();
               const next = (index + 1) % images.length;
               setIndex(next);
             }}
