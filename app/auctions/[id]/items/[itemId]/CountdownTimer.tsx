@@ -8,16 +8,23 @@ type CountdownProps = {
   initialEndTime: string;
 };
 
+// -----------------------------
+// Supabase client (client-side)
+// -----------------------------
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export default function CountdownTimer({ eventId, initialEndTime }: CountdownProps) {
-  const [endTime, setEndTime] = useState<Date>(new Date(initialEndTime));
+  const initialEnd = new Date(initialEndTime);
+
+  const [endTime, setEndTime] = useState<Date>(initialEnd);
   const [remaining, setRemaining] = useState<number>(
-    Math.max(0, new Date(initialEndTime).getTime() - Date.now())
+    Math.max(0, initialEnd.getTime() - Date.now())
   );
+
+  const [extendedFlash, setExtendedFlash] = useState(false);
 
   // -----------------------------
   // REALTIME END-TIME UPDATES
@@ -35,10 +42,28 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
         },
         (payload) => {
           const updated = payload.new;
-          if (updated.ends_at) {
+
+          if (updated?.ends_at) {
             const newEnd = new Date(updated.ends_at);
+
+            // Detect extension (end time increased)
+            if (newEnd.getTime() > endTime.getTime()) {
+              setExtendedFlash(true);
+
+              // Optional: subtle sound
+              const audio = new Audio(
+                "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA="
+              );
+              audio.play().catch(() => {});
+
+              // Optional: mobile vibration
+              if (navigator.vibrate) navigator.vibrate(60);
+
+              setTimeout(() => setExtendedFlash(false), 2000);
+            }
+
             setEndTime(newEnd);
-            setRemaining(newEnd.getTime() - Date.now());
+            setRemaining(Math.max(0, newEnd.getTime() - Date.now()));
           }
         }
       )
@@ -47,7 +72,7 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [eventId]);
+  }, [eventId, endTime]);
 
   // -----------------------------
   // LOCAL TICKING TIMER
@@ -55,12 +80,15 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
   useEffect(() => {
     const interval = setInterval(() => {
       const diff = endTime.getTime() - Date.now();
-      setRemaining(diff);
+      setRemaining(Math.max(0, diff));
     }, 1000);
 
     return () => clearInterval(interval);
   }, [endTime]);
 
+  // -----------------------------
+  // FORMAT REMAINING TIME
+  // -----------------------------
   if (remaining <= 0) {
     return (
       <div className="text-red-600 font-semibold text-lg">
@@ -69,19 +97,32 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
     );
   }
 
-  const seconds = Math.floor(remaining / 1000) % 60;
-  const minutes = Math.floor(remaining / 1000 / 60) % 60;
-  const hours = Math.floor(remaining / 1000 / 60 / 60);
+  const totalSeconds = Math.floor(remaining / 1000);
+  const seconds = totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60) % 60;
+  const hours = Math.floor(totalSeconds / 3600);
 
   const isClosingSoon = remaining < 2 * 60 * 1000; // last 2 minutes
 
   return (
-    <div
-      className={`text-lg font-semibold ${
-        isClosingSoon ? "text-red-600" : "text-foreground"
-      }`}
-    >
-      Ends in: {hours > 0 && `${hours}h `}{minutes}m {seconds}s
+    <div className="space-y-1">
+      {/* EXTENSION FLASH */}
+      {extendedFlash && (
+        <div className="text-green-600 font-semibold text-sm animate-pulse">
+          +2 minutes extended
+        </div>
+      )}
+
+      {/* Countdown */}
+      <div
+        className={`text-lg font-semibold ${
+          isClosingSoon ? "text-red-600" : "text-foreground"
+        }`}
+      >
+        Ends in:{" "}
+        {hours > 0 && `${hours}h `}
+        {minutes}m {seconds}s
+      </div>
     </div>
   );
 }

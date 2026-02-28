@@ -7,6 +7,9 @@ import CountdownTimer from "./CountdownTimer";
 import BidBox from "./BidBox";
 import BidHistory from "./BidHistory";
 
+// -----------------------------
+// Supabase server client
+// -----------------------------
 async function createClient() {
   const cookieStorePromise = cookies();
 
@@ -24,6 +27,46 @@ async function createClient() {
   );
 }
 
+// -----------------------------
+// Tartami increments (cleaned)
+// -----------------------------
+const TARTAMI_INCREMENTS = [
+  { min: 0, max: 19, inc: 1 },
+  { min: 20, max: 49, inc: 2 },
+  { min: 50, max: 199, inc: 5 },
+  { min: 200, max: 499, inc: 10 },
+  { min: 500, max: 999, inc: 25 },
+  { min: 1000, max: 4999, inc: 50 },
+  { min: 5000, max: 9999, inc: 100 },
+  { min: 10000, max: 24999, inc: 250 },
+  { min: 25000, max: 49999, inc: 500 },
+  { min: 50000, max: Infinity, inc: 1000 },
+];
+
+function getIncrement(amount: number) {
+  const row = TARTAMI_INCREMENTS.find(
+    (r) => amount >= r.min && amount <= r.max
+  );
+  return row?.inc ?? 1;
+}
+
+// -----------------------------
+// Compute auction status
+// -----------------------------
+function computeStatus(event: any) {
+  const now = new Date();
+  const start = event.starts_at ? new Date(event.starts_at) : null;
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+
+  if (start && now < start) return "Upcoming";
+  if (start && end && now >= start && now <= end) return "Live";
+  if (end && now > end) return "Ended";
+  return "Auction";
+}
+
+// -----------------------------
+// Page Component
+// -----------------------------
 export default async function ItemPage({ params }: any) {
   const { id: eventId, itemId } = await params;
 
@@ -63,6 +106,9 @@ export default async function ItemPage({ params }: any) {
     );
   }
 
+  // Compute auction status
+  const status = computeStatus(event);
+
   // Fetch highest bid
   const { data: latestBid } = await supabase
     .from("bids")
@@ -76,20 +122,8 @@ export default async function ItemPage({ params }: any) {
     ? Number(latestBid.amount)
     : Number(item.starting_bid);
 
-  // Load increment table
-  const incrementTableId = event.increment_table_id;
-
-  const { data: inc } = await supabase
-    .from("bid_increments")
-    .select("*")
-    .eq("table_id", incrementTableId)
-    .lte("min_amount", currentPrice)
-    .or(`max_amount.is.null,max_amount.gte.${currentPrice}`)
-    .order("min_amount", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const increment = inc ? Number(inc.increment) : 1;
+  // Tartami increment logic
+  const increment = getIncrement(currentPrice);
   const nextMinBid = currentPrice + increment;
 
   // Fetch bid history
@@ -136,9 +170,9 @@ export default async function ItemPage({ params }: any) {
       {/* Bidding UI */}
       <BidBox
         itemId={item.id}
-        eventId={event.id}
         currentPrice={currentPrice}
         nextMinBid={nextMinBid}
+        isLive={status === "Live"}
       />
 
       {/* Real-time Bid History */}

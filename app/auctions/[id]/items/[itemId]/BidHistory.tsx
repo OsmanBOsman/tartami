@@ -15,14 +15,20 @@ type BidHistoryProps = {
   initialBids: Bid[];
 };
 
+// -----------------------------
+// Supabase client (client-side)
+// -----------------------------
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
   const [bids, setBids] = useState<Bid[]>(initialBids);
 
+  // -----------------------------
+  // Realtime subscription
+  // -----------------------------
   useEffect(() => {
     const channel = supabase
       .channel(`bids-history:${itemId}`)
@@ -39,7 +45,7 @@ export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
 
           setBids((prev) => {
             // Avoid duplicates
-            if (prev.find((b) => b.id === newBid.id)) return prev;
+            if (prev.some((b) => b.id === newBid.id)) return prev;
 
             return [newBid, ...prev];
           });
@@ -53,20 +59,20 @@ export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
   }, [itemId]);
 
   return (
-    <div className="border rounded-lg p-4 space-y-3">
+    <div className="border rounded-lg p-4 space-y-3 bg-white">
       <h2 className="text-lg font-semibold">Bid History</h2>
 
       {bids.length === 0 && (
         <p className="text-sm text-muted-foreground">No bids yet.</p>
       )}
 
-      <div className="space-y-2 max-h-64 overflow-y-auto">
+      <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
         {bids.map((bid) => (
           <div
             key={bid.id}
             className="flex justify-between text-sm border-b pb-1"
           >
-            <span className="font-medium">${bid.amount}</span>
+            <span className="font-medium">${Number(bid.amount).toFixed(2)}</span>
             <span className="text-muted-foreground">
               {new Date(bid.created_at).toLocaleString()}
             </span>

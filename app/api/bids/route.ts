@@ -1,221 +1,149 @@
-// app/api/bids/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-function createClient() {
-  const cookieStorePromise = cookies(); // returns a Promise
+// -----------------------------
+// Tartami increments
+// -----------------------------
+const TARTAMI_INCREMENTS = [
+  { min: 0, max: 19, inc: 1 },
+  { min: 20, max: 49, inc: 2 },
+  { min: 50, max: 199, inc: 5 },
+  { min: 200, max: 499, inc: 10 },
+  { min: 500, max: 999, inc: 25 },
+  { min: 1000, max: 4999, inc: 50 },
+  { min: 5000, max: 9999, inc: 100 },
+  { min: 10000, max: 24999, inc: 250 },
+  { min: 25000, max: 49999, inc: 500 },
+  { min: 50000, max: Infinity, inc: 1000 },
+];
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        async get(name: string) {
-          const store = await cookieStorePromise; // await here
-          return store.get(name)?.value;
-        },
-      },
+function getIncrement(amount: number) {
+  const row = TARTAMI_INCREMENTS.find(
+    (r) => amount >= r.min && amount <= r.max
+  );
+  return row?.inc ?? 1;
+}
+
+// -----------------------------
+// Soft-close settings
+// -----------------------------
+const SOFT_CLOSE_WINDOW_MS = 2 * 60 * 1000; // last 2 minutes
+const SOFT_CLOSE_EXTENSION_MS = 2 * 60 * 1000; // extend by 2 minutes
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const { item_id } = body;
+
+    if (!item_id) {
+      return NextResponse.json({ error: "Missing item_id" }, { status: 400 });
     }
-  );
-}
 
-// Helper: get increment for a given amount
-async function getIncrement(supabase: any, tableId: string, amount: number) {
-  const { data, error } = await supabase
-    .from("bid_increments")
-    .select("*")
-    .eq("table_id", tableId)
-    .lte("min_amount", amount)
-    .or(`max_amount.is.null,max_amount.gte.${amount}`)
-    .order("min_amount", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    const cookieStore = await cookies();
 
-  if (error || !data) return 1;
-  return Number(data.increment);
-}
-
-export async function POST(req: NextRequest) {
-  const supabase = createClient();
-
-  const { itemId, amount } = await req.json();
-
-  if (!itemId || !amount) {
-    return NextResponse.json(
-      { error: "itemId and amount are required" },
-      { status: 400 }
-    );
-  }
-
-  // Get user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
-  // Load item + event
-  const { data: item, error: itemError } = await supabase
-    .from("auction_items")
-    .select("*, event:auction_events(*), bids:bids(amount)")
-    .eq("id", itemId)
-    .single();
-
-  if (itemError || !item) {
-    return NextResponse.json({ error: "Item not found" }, { status: 404 });
-  }
-
-  const event = item.event;
-
-  if (!event) {
-    return NextResponse.json(
-      { error: "Auction event not found" },
-      { status: 400 }
-    );
-  }
-
-  // After loading event:
-  const status = (() => {
-  const now = new Date();
-  const start = event.starts_at ? new Date(event.starts_at) : null;
-  const end = event.ends_at ? new Date(event.ends_at) : null;
-  
-  if (!start || !end) return "draft";
-  if (now < start) return "scheduled";
-  if (now >= start && now <= end) return "live";
-    return "ended";
-  })();
-  
-  if (status !== "live") {
-    return NextResponse.json(
-      { error: "Bidding is not open for this auction" },
-      { status: 400 }
-    );
-  }
-  
-  // Validate auction timing
-  const now = new Date();
-  const startsAt = event.starts_at ? new Date(event.starts_at) : null;
-  const endsAt = event.ends_at ? new Date(event.ends_at) : null;
-
-  if (!startsAt || !endsAt) {
-    return NextResponse.json(
-      { error: "Auction timing not configured" },
-      { status: 400 }
-    );
-  }
-
-  if (now < startsAt) {
-    return NextResponse.json(
-      { error: "Auction has not started yet" },
-      { status: 400 }
-    );
-  }
-
-  if (now > endsAt) {
-    return NextResponse.json(
-      { error: "Auction has ended" },
-      { status: 400 }
-    );
-  }
-
-  // Determine current highest bid
-  const { data: latestBid } = await supabase
-    .from("bids")
-    .select("*")
-    .eq("item_id", itemId)
-    .order("amount", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const currentAmount = latestBid
-    ? Number(latestBid.amount)
-    : Number(item.starting_bid);
-
-  // Load increment table
-  const incrementTableId = event.increment_table_id;
-
-  if (!incrementTableId) {
-    return NextResponse.json(
-      { error: "No increment table assigned to this auction" },
-      { status: 500 }
-    );
-  }
-
-  const increment = await getIncrement(supabase, incrementTableId, currentAmount);
-
-  const minAllowed =
-    currentAmount === 0
-      ? Number(item.starting_bid)
-      : currentAmount + increment;
-
-  if (amount < minAllowed) {
-    return NextResponse.json(
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       {
-        error: "Bid too low",
-        minAllowed,
-      },
-      { status: 400 }
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
     );
-  }
 
-  // -----------------------------
-  // ⭐ 2-MINUTE SOFT CLOSE LOGIC
-  // -----------------------------
-  const windowSeconds = event.soft_close_window_seconds ?? 120;
-  const extendSeconds = event.soft_close_extend_seconds ?? 120;
+    // 1. Auth check
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  const timeRemaining = (endsAt.getTime() - now.getTime()) / 1000;
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
 
-  let extended = false;
-  let newEnd = endsAt;
+    // 2. Fetch item + event
+    const { data: item } = await supabase
+      .from("auction_items")
+      .select("*, event:auction_events(*)")
+      .eq("id", item_id)
+      .single();
 
-  if (timeRemaining <= windowSeconds) {
-    newEnd = new Date(endsAt.getTime() + extendSeconds * 1000);
+    if (!item) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
 
-    await supabase
-      .from("auction_events")
-      .update({ ends_at: newEnd.toISOString() })
-      .eq("id", event.id);
+    const now = new Date();
+    const start = new Date(item.event.starts_at);
+    const end = new Date(item.event.ends_at);
 
-    extended = true;
-  }
+    if (now < start) {
+      return NextResponse.json(
+        { error: "Auction has not started" },
+        { status: 400 }
+      );
+    }
 
-  // Insert bid
-  const { data: bid, error: bidError } = await supabase
-    .from("bids")
-    .insert({
-      item_id: itemId,
+    if (now > end) {
+      return NextResponse.json(
+        { error: "Auction has ended" },
+        { status: 400 }
+      );
+    }
+
+    // 3. Fetch latest bid
+    const { data: latestBid } = await supabase
+      .from("bids")
+      .select("*")
+      .eq("item_id", item_id)
+      .order("amount", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const currentPrice = latestBid
+      ? Number(latestBid.amount)
+      : Number(item.starting_bid);
+
+    const increment = getIncrement(currentPrice);
+    const requiredMinBid = currentPrice + increment;
+
+    // 4. Insert bid
+    const { error: insertError } = await supabase.from("bids").insert({
+      item_id,
       bidder_id: user.id,
-      amount,
-    })
-    .select()
-    .single();
+      amount: requiredMinBid,
+    });
 
-  if (bidError) {
+    if (insertError) {
+      return NextResponse.json(
+        { error: insertError.message },
+        { status: 400 }
+      );
+    }
+
+    // -----------------------------
+    // 5. Soft-close extension logic
+    // -----------------------------
+    const msRemaining = end.getTime() - now.getTime();
+
+    if (msRemaining <= SOFT_CLOSE_WINDOW_MS) {
+      const newEnd = new Date(end.getTime() + SOFT_CLOSE_EXTENSION_MS);
+
+      await supabase
+        .from("auction_events")
+        .update({ ends_at: newEnd.toISOString() })
+        .eq("id", item.event.id);
+    }
+
+    return NextResponse.json({
+      success: true,
+      amount: requiredMinBid,
+    });
+  } catch (err: any) {
     return NextResponse.json(
-      { error: "Failed to place bid" },
+      { error: err.message || "Unknown error" },
       { status: 500 }
     );
   }
-
-  // Update current price on item
-  await supabase
-    .from("auction_items")
-    .update({ starting_bid: amount })
-    .eq("id", itemId);
-
-  return NextResponse.json(
-    {
-      success: true,
-      bid,
-      extended,
-      newEndTime: newEnd,
-      nextMinBid: amount + (await getIncrement(supabase, incrementTableId, amount)),
-    },
-    { status: 200 }
-  );
 }
