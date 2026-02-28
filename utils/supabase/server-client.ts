@@ -1,15 +1,11 @@
-// lib/supabase/server.ts
+// utils/supabase/server-client.ts
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-// Prevent async module inference by wrapping cookies()
-function getCookieStore() {
-  return cookies();
-}
-
 export function createClient() {
-  const cookieStore = getCookieStore();
+  // Force TS to stop treating cookies() as a Promise
+  const cookieStore: any = cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
