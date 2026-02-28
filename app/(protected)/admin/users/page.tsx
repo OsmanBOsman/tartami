@@ -1,8 +1,8 @@
 // app/(protected)/admin/users/page.tsx
-import { createClient } from "@/utils/supabase/create-server-client";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 
 export default async function AdminUsersPage() {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   const { data: users } = await supabase
     .from("user_profiles")
@@ -38,10 +38,7 @@ export default async function AdminUsersPage() {
               <td className="p-2">{u.trusted ? "Yes" : "No"}</td>
               <td className="p-2">{u.banned ? "Yes" : "No"}</td>
               <td className="p-2">
-                <a
-                  href={`/admin/users/${u.id}`}
-                  className="text-blue-600 underline"
-                >
+                <a href={`/admin/users/${u.id}`} className="text-blue-600 underline">
                   Manage
                 </a>
               </td>
