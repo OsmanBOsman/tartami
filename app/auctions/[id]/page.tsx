@@ -1,5 +1,5 @@
 // app/auctions/[id]/page.tsx
-// Public Auction Page – Tartami increments, hybrid CTA, production-ready
+// Public Auction Page – Tartami increments, clean CTA, production-ready
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
@@ -96,7 +96,7 @@ export default async function AuctionEventPage(props: any) {
 
   const status = computeStatus(event);
 
-  // Fetch items
+  // Fetch items (approved only)
   const { data: items } = await supabase
     .from("auction_items")
     .select("*, images:item_images(*)")
@@ -172,8 +172,8 @@ export default async function AuctionEventPage(props: any) {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
           {items?.map((item: any) => {
             const primary = item.images?.find((img: any) => img.is_primary);
-            const currentBid = item.current_bid ?? item.starting_bid;
-            const nextBid = getNextBid(currentBid);
+            const currentPrice = Number(item.current_bid ?? item.starting_bid);
+            const nextBid = getNextBid(currentPrice);
 
             return (
               <Link
@@ -212,7 +212,7 @@ export default async function AuctionEventPage(props: any) {
                   {status === "Live" && (
                     <div className="space-y-1">
                       <div className="text-sm text-muted-foreground">
-                        Current bid: ${Number(currentBid).toFixed(2)}
+                        Current bid: ${currentPrice.toFixed(2)}
                       </div>
                       <div className="text-sm font-semibold text-blue-600">
                         Bid ${nextBid.toFixed(2)}
@@ -222,7 +222,7 @@ export default async function AuctionEventPage(props: any) {
 
                   {status === "Ended" && (
                     <div className="text-sm font-medium">
-                      Final price: ${Number(currentBid).toFixed(2)}
+                      Final price: ${currentPrice.toFixed(2)}
                     </div>
                   )}
                 </div>

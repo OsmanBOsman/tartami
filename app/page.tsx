@@ -1,27 +1,34 @@
 // app/page.tsx
-// Public Homepage – lists all auction events (Live, Upcoming, Ended)
+// Tartami Public Home Page – premium Somali-rooted auction landing
 
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import Link from "next/link";
 
+// -----------------------------
+// Supabase SSR client
+// -----------------------------
 async function createClient() {
-  const cookieStore = await cookies();
+  const cookieStorePromise = cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        async get(name: string) {
+          const store = await cookieStorePromise;
+          return store.get(name)?.value;
         },
       },
     }
   );
 }
 
-function computeStatus(event: any): string {
+// -----------------------------
+// Helpers
+// -----------------------------
+function computeStatus(event: any) {
   const now = new Date();
   const start = event.starts_at ? new Date(event.starts_at) : null;
   const end = event.ends_at ? new Date(event.ends_at) : null;
@@ -29,119 +36,214 @@ function computeStatus(event: any): string {
   if (start && now < start) return "Upcoming";
   if (start && end && now >= start && now <= end) return "Live";
   if (end && now > end) return "Ended";
-
   return "Auction";
 }
 
+function formatDate(d: string | null) {
+  if (!d) return "";
+  return new Date(d).toLocaleString();
+}
+
+// -----------------------------
+// Page Component
+// -----------------------------
 export default async function HomePage() {
   const supabase = await createClient();
 
-  // Fetch all auction events
+  // Fetch published auctions + items + images
   const { data: events } = await supabase
     .from("auction_events")
-    .select("*")
+    .select(
+      `
+      *,
+      items:auction_items(
+        id,
+        status,
+        images:item_images(url, is_primary)
+      )
+    `
+    )
+    .eq("status", "published")
     .order("starts_at", { ascending: true });
 
-  const live: any[] = [];
-  const upcoming: any[] = [];
-  const ended: any[] = [];
-
-  for (const e of events || []) {
-    const status = computeStatus(e);
-    if (status === "Live") live.push(e);
-    else if (status === "Upcoming") upcoming.push(e);
-    else ended.push(e);
-  }
-
-  function StatusBadge({ status }: { status: string }) {
-    return (
-      <span
-        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
-          status === "Live"
-            ? "bg-green-100 text-green-800"
-            : status === "Upcoming"
-            ? "bg-amber-100 text-amber-800"
-            : status === "Ended"
-            ? "bg-red-100 text-red-800"
-            : "bg-muted text-muted-foreground"
-        }`}
-      >
-        {status}
-      </span>
-    );
-  }
-
-  function AuctionList({ title, list }: any) {
-    if (!list || list.length === 0) return null;
-
-    return (
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">{title}</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {list.map((event: any) => {
-            const status = computeStatus(event);
-
-            return (
-              <Link
-                key={event.id}
-                href={`/auctions/${event.id}`}
-                className="border rounded-lg p-4 hover:shadow transition space-y-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-lg truncate">
-                    {event.title || `Auction #${event.id}`}
-                  </div>
-                  <StatusBadge status={status} />
-                </div>
-
-                {event.description && (
-                  <p className="text-sm text-muted-foreground line-clamp-3">
-                    {event.description}
-                  </p>
-                )}
-
-                <div className="text-xs text-muted-foreground space-y-1">
-                  {event.starts_at && (
-                    <div>
-                      <span className="font-medium text-foreground">
-                        Starts:
-                      </span>{" "}
-                      {new Date(event.starts_at).toLocaleString()}
-                    </div>
-                  )}
-                  {event.ends_at && (
-                    <div>
-                      <span className="font-medium text-foreground">
-                        Ends:
-                      </span>{" "}
-                      {new Date(event.ends_at).toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
+  const live = events?.filter((e) => computeStatus(e) === "Live") || [];
+  const upcoming = events?.filter((e) => computeStatus(e) === "Upcoming") || [];
+  const ended = events?.filter((e) => computeStatus(e) === "Ended") || [];
 
   return (
-    <div className="p-6 space-y-10 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-semibold">Tartami Auctions</h1>
+    <div className="p-6 max-w-6xl mx-auto space-y-16">
+      {/* Hero */}
+      <section className="space-y-4 text-center py-10">
+        <h1 className="text-4xl font-bold tracking-tight">
+          Tartami – Premium Somali Auctions
+        </h1>
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          A modern, trusted auction platform built for Somalia and the world.
+          Bid with confidence. Sell with pride. Tartami.
+        </p>
 
-      {/* Live Auctions */}
-      <AuctionList title="Live Auctions" list={live} />
+        <Link
+          href="/auctions"
+          className="inline-block mt-4 px-6 py-3 bg-blue-600 text-white rounded-md font-medium hover:bg-blue-700 transition"
+        >
+          Browse Auctions
+        </Link>
+      </section>
 
-      {/* Upcoming Auctions */}
-      <AuctionList title="Upcoming Auctions" list={upcoming} />
+      {/* LIVE AUCTIONS */}
+      {live.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">Live Auctions</h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {live.map((event: any) => {
+              const firstItem = event.items?.find((i: any) => i.status === "approved");
+              const primaryImage =
+                firstItem?.images?.find((img: any) => img.is_primary) ||
+                firstItem?.images?.[0] ||
+                null;
 
-      {/* Ended Auctions */}
-      <AuctionList title="Past Auctions" list={ended} />
+              return (
+                <Link
+                  key={event.id}
+                  href={`/auctions/${event.id}`}
+                  className="border rounded-lg overflow-hidden hover:shadow transition bg-white flex flex-col"
+                >
+                  <div className="aspect-video bg-black/5 overflow-hidden">
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage.url}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                        No image
+                      </div>
+                    )}
+                  </div>
 
-      {events?.length === 0 && (
-        <p className="text-muted-foreground">No auctions available.</p>
+                  <div className="p-4 space-y-2 flex-1 flex flex-col">
+                    <h3 className="font-semibold text-lg truncate">
+                      {event.title}
+                    </h3>
+
+                    <div className="text-sm text-muted-foreground">
+                      Ends: {formatDate(event.ends_at)}
+                    </div>
+
+                    <div className="mt-auto pt-3 text-blue-600 text-sm font-medium">
+                      Enter auction →
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* UPCOMING AUCTIONS */}
+      {upcoming.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">Upcoming Auctions</h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {upcoming.map((event: any) => {
+              const firstItem = event.items?.find((i: any) => i.status === "approved");
+              const primaryImage =
+                firstItem?.images?.find((img: any) => img.is_primary) ||
+                firstItem?.images?.[0] ||
+                null;
+
+              return (
+                <Link
+                  key={event.id}
+                  href={`/auctions/${event.id}`}
+                  className="border rounded-lg overflow-hidden hover:shadow transition bg-white flex flex-col"
+                >
+                  <div className="aspect-video bg-black/5 overflow-hidden">
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage.url}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                        No image
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 space-y-2 flex-1 flex flex-col">
+                    <h3 className="font-semibold text-lg truncate">
+                      {event.title}
+                    </h3>
+
+                    <div className="text-sm text-muted-foreground">
+                      Starts: {formatDate(event.starts_at)}
+                    </div>
+
+                    <div className="mt-auto pt-3 text-blue-600 text-sm font-medium">
+                      View details →
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* RECENTLY ENDED */}
+      {ended.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold">Recently Ended</h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {ended.map((event: any) => {
+              const firstItem = event.items?.find((i: any) => i.status === "approved");
+              const primaryImage =
+                firstItem?.images?.find((img: any) => img.is_primary) ||
+                firstItem?.images?.[0] ||
+                null;
+
+              return (
+                <Link
+                  key={event.id}
+                  href={`/auctions/${event.id}`}
+                  className="border rounded-lg overflow-hidden hover:shadow transition bg-white flex flex-col"
+                >
+                  <div className="aspect-video bg-black/5 overflow-hidden">
+                    {primaryImage ? (
+                      <img
+                        src={primaryImage.url}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                        No image
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-4 space-y-2 flex-1 flex flex-col">
+                    <h3 className="font-semibold text-lg truncate">
+                      {event.title}
+                    </h3>
+
+                    <div className="text-sm text-muted-foreground">
+                      Ended: {formatDate(event.ends_at)}
+                    </div>
+
+                    <div className="mt-auto pt-3 text-blue-600 text-sm font-medium">
+                      View results →
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
       )}
     </div>
   );
