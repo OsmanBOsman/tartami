@@ -1,76 +1,95 @@
-import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 export async function POST() {
-  const supabase = await createClient();
+  try {
+    const cookieStore = await cookies();
 
-  // Get current user
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
 
-  if (userError || !user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+    // 1. Auth check
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  // Fetch existing profile
-  const { data: profile, error: profileError } = await supabase
-    .from("user_profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
 
-  if (profileError || !profile) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-  }
+    // 2. Fetch profile
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
 
-  // Block banned users
-  if (profile.banned) {
+    if (!profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
+    // 3. Block banned users
+    if (profile.banned) {
+      return NextResponse.json(
+        { error: "Your account is banned." },
+        { status: 403 }
+      );
+    }
+
+    // 4. Prevent re-requesting approval
+    if (profile.approved) {
+      return NextResponse.json(
+        { error: "Your account is already approved." },
+        { status: 400 }
+      );
+    }
+
+    // 5. Validate required fields
+    const missing =
+      !profile.full_name ||
+      !profile.username ||
+      !profile.phone ||
+      !profile.city ||
+      !profile.neighborhood;
+
+    if (missing) {
+      return NextResponse.json(
+        { error: "Complete your profile before requesting approval." },
+        { status: 400 }
+      );
+    }
+
+    // 6. Mark as pending approval
+    const { error: updateError } = await supabase
+      .from("user_profiles")
+      .update({ approved: false })
+      .eq("id", user.id);
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Approval requested. Admin will review your profile.",
+    });
+  } catch (err: any) {
     return NextResponse.json(
-      { error: "Your account is banned." },
-      { status: 403 }
+      { error: err.message || "Unknown error" },
+      { status: 500 }
     );
   }
-
-  // Prevent re-requesting approval if already approved
-  if (profile.approved) {
-    return NextResponse.json(
-      { error: "Your account is already approved." },
-      { status: 400 }
-    );
-  }
-
-  // Validate required fields before requesting approval
-  const missing =
-    !profile.full_name ||
-    !profile.username ||
-    !profile.phone ||
-    !profile.city ||
-    !profile.neighborhood;
-
-  if (missing) {
-    return NextResponse.json(
-      { error: "Complete your profile before requesting approval." },
-      { status: 400 }
-    );
-  }
-
-  // Mark as pending approval (approved = false)
-  const { error: updateError } = await supabase
-    .from("user_profiles")
-    .update({ approved: false })
-    .eq("id", user.id);
-
-  if (updateError) {
-    return NextResponse.json(
-      { error: updateError.message },
-      { status: 400 }
-    );
-  }
-
-  return NextResponse.json({
-    success: true,
-    message: "Approval requested. Admin will review your profile.",
-  });
 }

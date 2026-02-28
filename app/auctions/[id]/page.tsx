@@ -26,7 +26,7 @@ async function createClient() {
 }
 
 // -----------------------------
-// Tartami Increment Table (cleaned)
+// Tartami Increment Table
 // -----------------------------
 const TARTAMI_INCREMENTS = [
   { min: 0, max: 19, inc: 1 },
@@ -113,14 +113,14 @@ export default async function AuctionEventPage(props: any) {
         </Link>{" "}
         /{" "}
         <span className="text-foreground font-medium">
-          {event.title || `Auction #${event.id}`}
+          {event.name || `Auction #${event.id}`}
         </span>
       </div>
 
       {/* Header */}
       <div className="space-y-3">
         <h1 className="text-3xl font-semibold">
-          {event.title || `Auction #${event.id}`}
+          {event.name || `Auction #${event.id}`}
         </h1>
 
         <span
@@ -186,7 +186,7 @@ export default async function AuctionEventPage(props: any) {
                   {primary ? (
                     <img
                       src={primary.url}
-                      alt={item.title || ""}
+                      alt={item.name}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -199,7 +199,7 @@ export default async function AuctionEventPage(props: any) {
                 {/* Info */}
                 <div className="p-3 space-y-1">
                   <div className="font-medium truncate">
-                    {item.title || `Item #${item.id}`}
+                    {item.name || `Item #${item.id}`}
                   </div>
 
                   {/* CTA Logic */}

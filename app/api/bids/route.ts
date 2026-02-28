@@ -63,15 +63,51 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // 2. Fetch item + event
+    // 2. Fetch user profile (approval + ban checks)
+    const { data: profile } = await supabase
+      .from("user_profiles")
+      .select("approved, banned")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile) {
+      return NextResponse.json(
+        { error: "Profile not found" },
+        { status: 400 }
+      );
+    }
+
+    if (profile.banned) {
+      return NextResponse.json(
+        { error: "Your account is banned" },
+        { status: 403 }
+      );
+    }
+
+    if (!profile.approved) {
+      return NextResponse.json(
+        { error: "Your account is not approved to bid" },
+        { status: 403 }
+      );
+    }
+
+    // 3. Fetch item + event
     const { data: item } = await supabase
       .from("auction_items")
-      .select("*, event:auction_events(*)")
+      .select("*, event:auction_events(*), seller_id")
       .eq("id", item_id)
       .single();
 
     if (!item) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
+
+    // Prevent bidding on your own item
+    if (item.seller_id === user.id) {
+      return NextResponse.json(
+        { error: "You cannot bid on your own item" },
+        { status: 400 }
+      );
     }
 
     const now = new Date();
@@ -92,7 +128,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Fetch latest bid
+    // 4. Fetch latest bid
     const { data: latestBid } = await supabase
       .from("bids")
       .select("*")
@@ -108,7 +144,7 @@ export async function POST(req: Request) {
     const increment = getIncrement(currentPrice);
     const requiredMinBid = currentPrice + increment;
 
-    // 4. Insert bid
+    // 5. Insert bid
     const { error: insertError } = await supabase.from("bids").insert({
       item_id,
       bidder_id: user.id,
@@ -123,7 +159,7 @@ export async function POST(req: Request) {
     }
 
     // -----------------------------
-    // 5. Soft-close extension logic
+    // 6. Soft-close extension logic
     // -----------------------------
     const msRemaining = end.getTime() - now.getTime();
 
