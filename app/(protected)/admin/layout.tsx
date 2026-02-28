@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 // app/(protected)/admin/layout.tsx
 import { cookies } from "next/headers";
 import AdminSidebar from "./components/AdminSidebar";

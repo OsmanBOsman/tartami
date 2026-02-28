@@ -1,5 +1,5 @@
 // app/(protected)/layout.tsx
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 import { redirect } from "next/navigation";
 import DashboardNav from "./DashboardNav";
 

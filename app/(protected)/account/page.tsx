@@ -1,5 +1,5 @@
 // app/(protected)/account/page.tsx
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 
 export default async function AccountPage() {
   // Use the shared, correct SSR client

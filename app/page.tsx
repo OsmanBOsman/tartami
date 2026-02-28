@@ -1,7 +1,7 @@
 // app/page.tsx
 // Tartami Public Home Page – premium Somali-rooted auction landing
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 import Link from "next/link";
 
 // -----------------------------

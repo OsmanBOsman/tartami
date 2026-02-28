@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 // components/Header.tsx
 import Link from "next/link";
 import Image from "next/image";

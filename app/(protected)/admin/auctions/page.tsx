@@ -1,6 +1,6 @@
 // app/(protected)/admin/auctions/page.tsx
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 import Link from "next/link";
 
 function computeStatus(event: any) {

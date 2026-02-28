@@ -1,11 +1,11 @@
-// lib/supabase/route.ts
+// utils/supabase/route-client.ts
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 export function createRouteHandlerClient() {
-  // Force sync evaluation — prevents async module inference
-  const cookieStore = (() => cookies())();
+  // Force TS to stop treating cookies() as a Promise
+  const cookieStore: any = cookies();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

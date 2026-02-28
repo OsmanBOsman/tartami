@@ -1,6 +1,6 @@
 // app/(protected)/admin/api/items/[id]/approve/route.ts
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 
 // Next.js 16 route handler signature
 export async function POST(

@@ -1,6 +1,6 @@
 // app/(protected)/admin/auctions/[id]/items/[itemId]/consignor/page.tsx
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 
 export default async function AssignConsignorPage({ params }: any) {
   const { id, itemId } = params;

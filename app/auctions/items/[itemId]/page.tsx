@@ -1,6 +1,6 @@
 import { ItemBiddingPanel } from './ItemBiddingPanel'
 import { BidHistoryPanel } from './BidHistoryPanel'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/utils/supabase/server-client'
 
 export default async function ItemPage({
   params,

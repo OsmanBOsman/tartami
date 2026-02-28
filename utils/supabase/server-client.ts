@@ -3,9 +3,13 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
+// Prevent async module inference by wrapping cookies()
+function getCookieStore() {
+  return cookies();
+}
+
 export function createClient() {
-  // Force sync evaluation — prevents async module inference
-  const cookieStore = (() => cookies())();
+  const cookieStore = getCookieStore();
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

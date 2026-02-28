@@ -1,6 +1,6 @@
 // app/(protected)/admin/api/items/[id]/reject/route.ts
 
-import { createRouteHandlerClient } from "@/lib/supabase/route";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import { NextResponse } from "next/server";
 
 export async function POST(

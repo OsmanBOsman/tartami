@@ -1,6 +1,6 @@
 // app/api/admin/auctions/[id]/delete/route.ts
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 import { NextRequest, NextResponse } from "next/server";
 
 // ⭐ Shared auth + admin check

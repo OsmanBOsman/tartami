@@ -1,7 +1,7 @@
 // app/auctions/[id]/items/[itemId]/page.tsx
 // Public Item Page – Tartami premium item detail view
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 import Link from "next/link";
 
 // -----------------------------

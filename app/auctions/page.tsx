@@ -1,7 +1,7 @@
 // app/auctions/page.tsx
 // Public Auctions Home Page – Tartami Auction Calendar
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/utils/supabase/server-client";
 import Link from "next/link";
 
 // -----------------------------
