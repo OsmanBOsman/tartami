@@ -1,3 +1,4 @@
+// app/(protected)/admin/auctions/page.tsx
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import Link from "next/link";
@@ -46,7 +47,7 @@ export default async function AdminAuctionsPage() {
 
         <Link
           href="/admin/auctions/new"
-          className="px-4 py-2 bg-primary text-white rounded-md"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md"
         >
           New Event
         </Link>
@@ -69,12 +70,12 @@ export default async function AdminAuctionsPage() {
           return (
             <div
               key={event.id}
-              className="p-4 flex items-center justify-between hover:bg-muted transition"
+              className="p-4 flex items-center justify-between hover:bg-gray-50 transition"
             >
               <div>
                 <div className="font-medium">{event.title}</div>
 
-                <div className="text-sm text-muted-foreground space-x-2">
+                <div className="text-sm text-gray-600 space-x-2">
                   <span className={`px-2 py-1 rounded text-xs ${badgeClass}`}>
                     {status}
                   </span>
@@ -82,7 +83,7 @@ export default async function AdminAuctionsPage() {
                   <span>{itemCount} items</span>
                 </div>
 
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-xs text-gray-500 mt-1">
                   {event.starts_at && (
                     <span>
                       Starts: {new Date(event.starts_at).toLocaleString()}
@@ -119,7 +120,7 @@ export default async function AdminAuctionsPage() {
         })}
 
         {events?.length === 0 && (
-          <div className="p-4 text-muted-foreground">No events yet.</div>
+          <div className="p-4 text-gray-500">No events yet.</div>
         )}
       </div>
     </div>

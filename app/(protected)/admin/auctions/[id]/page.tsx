@@ -1,3 +1,4 @@
+// app/(protected)/admin/auctions/[id]/page.tsx
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import Link from "next/link";
@@ -45,13 +46,10 @@ export default async function AdminAuctionEventPage({ params }: any) {
     .select("id")
     .eq("event_id", params.id);
 
-  // ⭐ Normalize to always be an array
   const items = itemsRaw ?? [];
-
   const status = computeStatus(event);
   const hasItems = items.length > 0;
   const hasTimes = event.starts_at && event.ends_at;
-
   const canPublish = status === "Draft" && hasItems && hasTimes;
 
   return (
@@ -59,7 +57,7 @@ export default async function AdminAuctionEventPage({ params }: any) {
       <h1 className="text-2xl font-semibold">{event.title}</h1>
 
       <div className="space-y-2">
-        <div className="text-muted-foreground">{event.description}</div>
+        <div className="text-gray-600">{event.description}</div>
         <div>Type: {event.event_type}</div>
         <div>Status: {status}</div>
         <div>Starts: {event.starts_at}</div>
@@ -80,13 +78,13 @@ export default async function AdminAuctionEventPage({ params }: any) {
         </button>
 
         {!hasItems && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-500">
             Add at least one item before publishing.
           </p>
         )}
 
         {!hasTimes && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-500">
             Set start and end times before publishing.
           </p>
         )}
