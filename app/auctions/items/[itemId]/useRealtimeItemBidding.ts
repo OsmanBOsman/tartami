@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { supabaseBrowserClient } from '@/utils/supabase/client'
 import type { RealtimePostgresInsertPayload } from '@supabase/supabase-js'
 
 export function useRealtimeItemBidding(itemId: string, userId?: string) {
-  const supabase = createSupabaseServerClient()
+  const supabase = supabaseBrowserClient
 
   const [state, setState] = useState<any>(null)
   const [loading, setLoading] = useState(true)

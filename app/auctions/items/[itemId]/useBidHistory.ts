@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { supabaseBrowserClient } from '@/utils/supabase/client'
 
 export function useBidHistory(itemId: string) {
-  const supabase = createSupabaseServerClient()
+  const supabase = supabaseBrowserClient
   const [history, setHistory] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -13,8 +13,8 @@ export function useBidHistory(itemId: string) {
     setLoading(true)
 
     const { data, error } = await supabase.rpc('get_bid_history_with_names', {
-        p_item_id: itemId,
-    })      
+      p_item_id: itemId,
+    })
 
     if (!error && data) setHistory(data)
     setLoading(false)
