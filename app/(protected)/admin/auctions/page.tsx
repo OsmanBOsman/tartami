@@ -24,7 +24,6 @@ function computeStatus(event: any) {
   const end = event.ends_at ? new Date(event.ends_at) : null;
 
   if (!start || !end) return "Draft";
-
   if (now < start) return "Scheduled";
   if (now >= start && now <= end) return "Live";
   if (now > end) return "Ended";
@@ -58,6 +57,15 @@ export default async function AdminAuctionsPage() {
           const status = computeStatus(event);
           const itemCount = event.auction_items?.[0]?.count ?? 0;
 
+          const badgeClass =
+            status === "Draft"
+              ? "bg-gray-200 text-gray-800"
+              : status === "Scheduled"
+              ? "bg-blue-100 text-blue-800"
+              : status === "Live"
+              ? "bg-green-100 text-green-800"
+              : "bg-red-100 text-red-800";
+
           return (
             <div
               key={event.id}
@@ -67,7 +75,9 @@ export default async function AdminAuctionsPage() {
                 <div className="font-medium">{event.title}</div>
 
                 <div className="text-sm text-muted-foreground space-x-2">
-                  <span>{status}</span>
+                  <span className={`px-2 py-1 rounded text-xs ${badgeClass}`}>
+                    {status}
+                  </span>
                   <span>•</span>
                   <span>{itemCount} items</span>
                 </div>

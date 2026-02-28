@@ -77,6 +77,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // After loading event:
+  const status = (() => {
+  const now = new Date();
+  const start = event.starts_at ? new Date(event.starts_at) : null;
+  const end = event.ends_at ? new Date(event.ends_at) : null;
+  
+  if (!start || !end) return "draft";
+  if (now < start) return "scheduled";
+  if (now >= start && now <= end) return "live";
+    return "ended";
+  })();
+  
+  if (status !== "live") {
+    return NextResponse.json(
+      { error: "Bidding is not open for this auction" },
+      { status: 400 }
+    );
+  }
+  
   // Validate auction timing
   const now = new Date();
   const startsAt = event.starts_at ? new Date(event.starts_at) : null;
