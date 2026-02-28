@@ -22,15 +22,17 @@ async function createClient() {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params; // ⭐ FIXED
+
   const supabase = await createClient();
 
   // Load event
   const { data: event, error: eventError } = await supabase
     .from("auction_events")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (eventError || !event) {
@@ -41,7 +43,7 @@ export async function POST(
   const { data: items } = await supabase
     .from("auction_items")
     .select("id")
-    .eq("event_id", params.id);
+    .eq("event_id", id);
 
   const hasItems = items && items.length > 0;
   const hasTimes = event.starts_at && event.ends_at;
@@ -57,7 +59,7 @@ export async function POST(
   const { error: updateError } = await supabase
     .from("auction_events")
     .update({ status: "scheduled" })
-    .eq("id", params.id);
+    .eq("id", id);
 
   if (updateError) {
     return NextResponse.json(
@@ -66,8 +68,7 @@ export async function POST(
     );
   }
 
-  // Redirect back to admin event page
   return NextResponse.redirect(
-    new URL(`/admin/auctions/${params.id}`, req.url)
+    new URL(`/admin/auctions/${id}`, req.url)
   );
 }
