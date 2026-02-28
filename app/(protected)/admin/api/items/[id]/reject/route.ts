@@ -1,13 +1,11 @@
-// app/(protected)/admin/api/items/[id]/reject/route.ts
-
+import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@/utils/supabase/route-client";
-import { NextResponse } from "next/server";
 
 export async function POST(
-  req: Request,
-  context: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = context.params;
+  const { id } = await context.params;
 
   const supabase = createRouteHandlerClient();
 
