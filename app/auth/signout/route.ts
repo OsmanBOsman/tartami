@@ -1,8 +1,9 @@
+// app/auth/signout/route.ts
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 
-export async function POST() {
+export async function POST(request: Request) {
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -25,5 +26,5 @@ export async function POST() {
 
   await supabase.auth.signOut();
 
-  return NextResponse.redirect("/auth/login");
+  return NextResponse.redirect(new URL("/auth/login", request.url));
 }

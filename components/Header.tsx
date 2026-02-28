@@ -1,6 +1,4 @@
 // components/Header.tsx
-// Somali-rooted global header with Tartami logo + SSR auth detection
-
 import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
@@ -9,6 +7,7 @@ import { createServerClient } from "@supabase/ssr";
 export default async function Header() {
   const cookieStore = await cookies();
 
+  // READ‑ONLY Supabase client for Server Components
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
@@ -28,7 +27,6 @@ export default async function Header() {
   return (
     <header className="w-full border-b bg-white">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-        
         {/* LEFT — Tartami Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
@@ -70,7 +68,6 @@ export default async function Header() {
                 {user.email}
               </Link>
 
-              {/* Correct SSR logout */}
               <form action="/auth/signout" method="post">
                 <button
                   type="submit"
