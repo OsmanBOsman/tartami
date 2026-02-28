@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from "next/server";
 
-export async function createClient() {
-  const cookieStore = await cookies(); // ✔ async version for your setup
+export async function POST() {
+  const cookieStore = await cookies();
 
-  return createServerClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
@@ -21,4 +22,8 @@ export async function createClient() {
       },
     }
   );
+
+  await supabase.auth.signOut();
+
+  return NextResponse.redirect("/auth/login");
 }

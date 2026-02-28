@@ -1,17 +1,30 @@
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 
 export default async function AccountPage() {
-  const supabase = await createClient();
+  const cookieStore = await cookies();
 
-  // 1. Get the authenticated user
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
+
+  // 1. Get authenticated user
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 2. Fetch the user's profile
+  // 2. Fetch profile
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("full_name, approved")
+    .select("*")
     .eq("id", user?.id)
     .single();
 

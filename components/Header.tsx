@@ -1,4 +1,4 @@
-// app/components/Header.tsx
+// components/Header.tsx
 // Somali-rooted global header with Tartami logo + SSR auth detection
 
 import Link from "next/link";
@@ -52,11 +52,11 @@ export default async function Header() {
         <div className="flex items-center gap-4 text-sm">
           {!user && (
             <>
-              <Link href="/login" className="hover:underline">
+              <Link href="/auth/login" className="hover:underline">
                 Login
               </Link>
               <Link
-                href="/signup"
+                href="/auth/signup"
                 className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
               >
                 Sign up
@@ -69,12 +69,16 @@ export default async function Header() {
               <Link href="/account" className="hover:underline">
                 {user.email}
               </Link>
-              <Link
-                href="/logout"
-                className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
-              >
-                Logout
-              </Link>
+
+              {/* Correct SSR logout */}
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition"
+                >
+                  Logout
+                </button>
+              </form>
             </>
           )}
         </div>
