@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { logout } from "@/app/auth/logout/action";
 
 export default async function Header() {
   const supabase = await createSupabaseServerClient();
@@ -14,6 +15,7 @@ export default async function Header() {
   return (
     <header className="w-full border-b bg-white">
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        
         {/* LEFT — Tartami Logo */}
         <Link href="/" className="flex items-center gap-2">
           <Image
@@ -55,7 +57,7 @@ export default async function Header() {
                 {user.email}
               </Link>
 
-              <form action="/auth/signout" method="post">
+              <form action={logout}>
                 <button
                   type="submit"
                   className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition"

@@ -26,7 +26,7 @@ async function getAdmin(supabase: any) {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)

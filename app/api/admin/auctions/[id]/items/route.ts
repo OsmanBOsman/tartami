@@ -1,5 +1,3 @@
-// app/api/admin/auctions/[id]/items/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
@@ -43,7 +41,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)
@@ -87,7 +85,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)
@@ -125,7 +123,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)
@@ -163,7 +161,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)

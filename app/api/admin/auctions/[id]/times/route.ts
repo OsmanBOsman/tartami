@@ -43,7 +43,7 @@ export async function PATCH(
 ) {
   const { id } = await context.params;
 
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)

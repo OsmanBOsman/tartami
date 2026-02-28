@@ -5,7 +5,7 @@ import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
 export async function POST() {
   try {
-    const supabase = createRouteHandlerClient();
+    const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
     // 1. Auth check
     const {

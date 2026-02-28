@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   // 1. Auth check
   const {

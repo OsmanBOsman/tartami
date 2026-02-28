@@ -7,7 +7,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIXED
 
   const form = await req.formData();
   const consignor_id = form.get("consignor_id");

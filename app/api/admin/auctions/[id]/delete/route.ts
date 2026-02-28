@@ -1,5 +1,3 @@
-// app/api/admin/auctions/[id]/delete/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
@@ -43,7 +41,7 @@ export async function DELETE(
 ) {
   const { id } = await context.params;
 
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)

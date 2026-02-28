@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing item_id" }, { status: 400 });
     }
 
-    const supabase = createRouteHandlerClient();
+    const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
     // 1. Auth check
     const {

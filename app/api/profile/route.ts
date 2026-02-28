@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       avatar_url,
     } = body;
 
-    const supabase = createRouteHandlerClient();
+    const supabase = await createRouteHandlerClient(); // ⭐ FIX
 
     // 1. Auth check
     const {

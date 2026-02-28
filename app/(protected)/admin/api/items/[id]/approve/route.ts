@@ -1,5 +1,3 @@
-// app/(protected)/admin/api/items/[id]/approve/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
@@ -9,7 +7,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
-  const supabase = createRouteHandlerClient();
+  const supabase = await createRouteHandlerClient(); // ⭐ FIXED
 
   await supabase
     .from("auction_items")

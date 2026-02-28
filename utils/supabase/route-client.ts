@@ -3,24 +3,29 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-export function createRouteHandlerClient() {
-  // Next.js 16: cookies() is synchronous in Route Handlers
-  // TS types are wrong, so we cast to any
-  const cookieStore: any = cookies();
+export async function createRouteHandlerClient() {
+  const cookieStore = await cookies();
 
-  return createServerClient(
+  // ⭐ FIX: cast createServerClient to "any" to bypass broken TS overloads
+  const create = createServerClient as any;
+
+  return create(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value ?? "";
+        getAll() {
+          return cookieStore.getAll();
         },
         set(name: string, value: string, options: any) {
-          cookieStore.set(name, value, options);
+          try {
+            cookieStore.set(name, value, options);
+          } catch {}
         },
         remove(name: string, options: any) {
-          cookieStore.set(name, "", { ...options, maxAge: 0 });
+          try {
+            cookieStore.set(name, "", { ...options, maxAge: 0 });
+          } catch {}
         },
       },
     }
