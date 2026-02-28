@@ -1,6 +1,8 @@
-import { createClient } from "@/utils/supabase/server-client";
+// app/api/profile/route.ts
+
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -14,9 +16,7 @@ export async function POST(req: Request) {
       avatar_url,
     } = body;
 
-    const cookieStore = await cookies();
-
-    const supabase = await createClient();
+    const supabase = createRouteHandlerClient();
 
     // 1. Auth check
     const {
@@ -38,7 +38,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    // 3. Block banned users
     if (profile.banned) {
       return NextResponse.json(
         { error: "Your account is banned." },
@@ -46,7 +45,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Prevent editing locked fields after approval
+    // 3. Prevent editing locked fields after approval
     const tryingToChangeLockedFields =
       profile.approved &&
       (full_name !== profile.full_name || phone !== profile.phone);
@@ -61,7 +60,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5. Update profile
+    // 4. Update profile
     const { error: updateError } = await supabase
       .from("user_profiles")
       .update({

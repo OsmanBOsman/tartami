@@ -1,9 +1,9 @@
 // app/api/admin/auctions/[id]/times/route.ts
 
-import { createClient } from "@/utils/supabase/server-client";
 import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
-// ⭐ Shared auth + admin check
+// Shared admin check
 async function getAdmin(supabase: any) {
   const {
     data: { user },
@@ -25,7 +25,7 @@ async function getAdmin(supabase: any) {
   return { user, profile };
 }
 
-// ⭐ Load event helper
+// Load event
 async function loadEvent(supabase: any, id: string) {
   const { data: event, error } = await supabase
     .from("auction_events")
@@ -37,27 +37,22 @@ async function loadEvent(supabase: any, id: string) {
   return event;
 }
 
-// ⭐ PATCH → Update times (partial updates allowed)
 export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
 
-  // Unified SSR Supabase client
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
-  // Auth
   const admin = await getAdmin(supabase);
   if ("error" in admin)
     return NextResponse.json({ error: admin.error }, { status: admin.status });
 
-  // Load event
   const event = await loadEvent(supabase, id);
   if (!event)
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
-  // Parse body
   const body = await req.json();
   const { starts_at, ends_at } = body;
 
@@ -68,12 +63,10 @@ export async function PATCH(
     );
   }
 
-  // Build update object
   const updates: any = {};
   if (starts_at) updates.starts_at = starts_at;
   if (ends_at) updates.ends_at = ends_at;
 
-  // Update event
   const { error: updateError } = await supabase
     .from("auction_events")
     .update(updates)

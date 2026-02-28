@@ -1,20 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import Link from "next/link";
+import { supabaseBrowserClient } from "@/utils/supabase/client";
 
-// -----------------------------
-// Supabase client (client-side)
-// -----------------------------
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
-
-// -----------------------------
-// Tartami increments (cleaned)
-// -----------------------------
 const TARTAMI_INCREMENTS = [
   { min: 0, max: 19, inc: 1 },
   { min: 20, max: 49, inc: 2 },
@@ -35,17 +24,23 @@ function getNextBid(current: number) {
   return current + (row?.inc ?? 1);
 }
 
-export default function ItemClient({ event, item, bids, status, nextBid, eventId }: any) {
-  const [currentBid, setCurrentBid] = useState(item.current_bid ?? item.starting_bid);
+export default function ItemClient({
+  event,
+  item,
+  bids,
+  status,
+  nextBid,
+  eventId,
+}: any) {
+  const [currentBid, setCurrentBid] = useState(
+    item.current_bid ?? item.starting_bid
+  );
   const [bidHistory, setBidHistory] = useState(bids);
   const [isOutbid, setIsOutbid] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // -----------------------------
-  // Realtime subscription
-  // -----------------------------
   useEffect(() => {
-    const channel = supabase
+    const channel = supabaseBrowserClient
       .channel(`bids:item:${item.id}`)
       .on(
         "postgres_changes",
@@ -70,13 +65,10 @@ export default function ItemClient({ event, item, bids, status, nextBid, eventId
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabaseBrowserClient.removeChannel(channel);
     };
   }, [item.id, currentBid]);
 
-  // -----------------------------
-  // SECURE placeBid() using /api/bids
-  // -----------------------------
   async function placeBid() {
     setLoading(true);
 
@@ -107,7 +99,7 @@ export default function ItemClient({ event, item, bids, status, nextBid, eventId
         },
         ...prev,
       ]);
-    } catch (err) {
+    } catch {
       alert("Unexpected error placing bid");
     }
 
@@ -118,15 +110,15 @@ export default function ItemClient({ event, item, bids, status, nextBid, eventId
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
-      {/* Back */}
-      <Link href={`/auctions/${eventId}`} className="text-sm text-blue-600 hover:underline">
+      <Link
+        href={`/auctions/${eventId}`}
+        className="text-sm text-blue-600 hover:underline"
+      >
         ← Back to Auction
       </Link>
 
-      {/* Title */}
       <h1 className="text-2xl font-semibold">{item.title}</h1>
 
-      {/* Image */}
       <div className="aspect-square bg-black/5 rounded-lg overflow-hidden">
         {item.images?.[0] ? (
           <img
@@ -141,13 +133,12 @@ export default function ItemClient({ event, item, bids, status, nextBid, eventId
         )}
       </div>
 
-      {/* Bid info */}
       <div className="space-y-2">
         <div className="text-lg font-medium">
           Current bid: ${Number(currentBid).toFixed(2)}
         </div>
 
-        {status === "Live" && (
+        {status === "Live" ? (
           <button
             onClick={placeBid}
             disabled={loading}
@@ -155,9 +146,7 @@ export default function ItemClient({ event, item, bids, status, nextBid, eventId
           >
             Bid ${nextBidAmount.toFixed(2)}
           </button>
-        )}
-
-        {status !== "Live" && (
+        ) : (
           <div className="text-sm text-muted-foreground">
             Auction is not live.
           </div>
@@ -170,14 +159,12 @@ export default function ItemClient({ event, item, bids, status, nextBid, eventId
         )}
       </div>
 
-      {/* Description */}
       {item.description && (
         <p className="text-muted-foreground whitespace-pre-line">
           {item.description}
         </p>
       )}
 
-      {/* Bid history */}
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">Bid History</h2>
 

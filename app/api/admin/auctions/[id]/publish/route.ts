@@ -1,7 +1,7 @@
 // app/api/admin/auctions/[id]/publish/route.ts
 
-import { createClient } from "@/utils/supabase/server-client";
 import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
 export async function POST(
   req: NextRequest,
@@ -9,8 +9,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
-  // Unified SSR Supabase client
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
   // 1. Auth check
   const {
@@ -32,7 +31,6 @@ export async function POST(
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // 3. Block banned users
   if (profile.banned) {
     return NextResponse.json(
       { error: "Your account is banned." },
@@ -40,7 +38,6 @@ export async function POST(
     );
   }
 
-  // 4. Enforce admin role
   if (profile.role !== "admin") {
     return NextResponse.json(
       { error: "Admin access required." },
@@ -48,7 +45,7 @@ export async function POST(
     );
   }
 
-  // 5. Load event
+  // 3. Load event
   const { data: event, error: eventError } = await supabase
     .from("auction_events")
     .select("*")
@@ -59,7 +56,7 @@ export async function POST(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  // 6. Load items
+  // 4. Load items
   const { data: items } = await supabase
     .from("auction_items")
     .select("id")
@@ -68,7 +65,7 @@ export async function POST(
   const hasItems = items && items.length > 0;
   const hasTimes = event.starts_at && event.ends_at;
 
-  // 7. Publish logic (draft → scheduled)
+  // 5. Publish logic
   if (event.status === "draft") {
     if (!hasItems || !hasTimes) {
       return NextResponse.json(
@@ -92,7 +89,7 @@ export async function POST(
     return NextResponse.redirect(new URL(`/admin/auctions/${id}`, req.url));
   }
 
-  // 8. Unpublish logic (scheduled/live → draft)
+  // 6. Unpublish logic
   if (event.status === "scheduled" || event.status === "live") {
     const { error: unpublishError } = await supabase
       .from("auction_events")
@@ -109,7 +106,6 @@ export async function POST(
     return NextResponse.redirect(new URL(`/admin/auctions/${id}`, req.url));
   }
 
-  // 9. Block unpublish after ended
   return NextResponse.json(
     { error: "Ended events cannot be modified." },
     { status: 400 }

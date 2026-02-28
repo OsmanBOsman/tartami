@@ -1,6 +1,7 @@
 // app/(protected)/admin/auctions/[id]/items/page.tsx
 
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import Link from "next/link";
 
 export default async function ItemsManagerPage({
@@ -8,7 +9,8 @@ export default async function ItemsManagerPage({
 }: {
   params: { id: string };
 }) {
-  const supabase = await createClient();
+  
+  const supabase = await createSupabaseServerClient();
 
   // Load event
   const { data: event } = await supabase

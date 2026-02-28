@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseBrowserClient } from "@/utils/supabase/client";
 
 type Bid = {
   id: string;
@@ -10,24 +10,17 @@ type Bid = {
   created_at: string;
 };
 
-type BidHistoryProps = {
+export default function BidHistory({
+  itemId,
+  initialBids,
+}: {
   itemId: string;
   initialBids: Bid[];
-};
-
-// -----------------------------
-// Supabase client (client-side)
-// -----------------------------
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
-
-export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
+}) {
   const [bids, setBids] = useState<Bid[]>(initialBids);
 
   useEffect(() => {
-    const channel = supabase
+    const channel = supabaseBrowserClient
       .channel(`bids-history:${itemId}`)
       .on(
         "postgres_changes",
@@ -37,7 +30,7 @@ export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
           table: "bids",
           filter: `item_id=eq.${itemId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const newBid = payload.new as Bid;
 
           setBids((prev) => {
@@ -49,7 +42,7 @@ export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabaseBrowserClient.removeChannel(channel);
     };
   }, [itemId]);
 
@@ -67,7 +60,7 @@ export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
             key={bid.id}
             className="flex justify-between text-sm border-b pb-1"
           >
-            <span className="font-medium">${Number(bid.amount).toFixed(2)}</span>
+            <span className="font-medium">${bid.amount.toFixed(2)}</span>
             <span className="text-muted-foreground">
               {new Date(bid.created_at).toLocaleString()}
             </span>

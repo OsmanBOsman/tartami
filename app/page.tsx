@@ -1,7 +1,8 @@
 // app/page.tsx
 // Tartami Public Home Page – premium Somali-rooted auction landing
 
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import Link from "next/link";
 
 // -----------------------------
@@ -27,7 +28,8 @@ function formatDate(d: string | null) {
 // Page Component
 // -----------------------------
 export default async function HomePage() {
-  const supabase = await createClient();
+  
+  const supabase = await createSupabaseServerClient();
 
   // Fetch published auctions + items + images
   const { data: events } = await supabase

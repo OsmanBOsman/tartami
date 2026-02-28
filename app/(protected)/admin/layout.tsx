@@ -1,12 +1,16 @@
-import { createClient } from "@/utils/supabase/server-client";
 // app/(protected)/admin/layout.tsx
+
 import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import AdminSidebar from "./components/AdminSidebar";
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
-
-  const supabase = await createClient();
+export default async function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  
+  const supabase = await createSupabaseServerClient();
 
   // 1. Get authenticated user
   const {

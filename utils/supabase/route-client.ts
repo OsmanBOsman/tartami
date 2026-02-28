@@ -4,7 +4,8 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 export function createRouteHandlerClient() {
-  // Force TS to stop treating cookies() as a Promise
+  // Next.js 16: cookies() is synchronous in Route Handlers
+  // TS types are wrong, so we cast to any
   const cookieStore: any = cookies();
 
   return createServerClient(

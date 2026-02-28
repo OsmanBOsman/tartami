@@ -1,33 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseBrowserClient } from "@/utils/supabase/client";
 
-type CountdownProps = {
+export default function CountdownTimer({
+  eventId,
+  initialEndTime,
+}: {
   eventId: string;
   initialEndTime: string;
-};
-
-// -----------------------------
-// Supabase client (client-side)
-// -----------------------------
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-);
-
-export default function CountdownTimer({ eventId, initialEndTime }: CountdownProps) {
+}) {
   const initialEnd = new Date(initialEndTime);
 
-  const [endTime, setEndTime] = useState<Date>(initialEnd);
-  const [remaining, setRemaining] = useState<number>(
+  const [endTime, setEndTime] = useState(initialEnd);
+  const [remaining, setRemaining] = useState(
     Math.max(0, initialEnd.getTime() - Date.now())
   );
-
   const [extendedFlash, setExtendedFlash] = useState(false);
 
   useEffect(() => {
-    const channel = supabase
+    const channel = supabaseBrowserClient
       .channel(`auction-end:${eventId}`)
       .on(
         "postgres_changes",
@@ -37,7 +29,7 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
           table: "auction_events",
           filter: `id=eq.${eventId}`,
         },
-        (payload) => {
+        (payload: any) => {
           const updated = payload.new;
 
           if (updated?.ends_at) {
@@ -64,7 +56,7 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabaseBrowserClient.removeChannel(channel);
     };
   }, [eventId, endTime]);
 
@@ -79,9 +71,7 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
 
   if (remaining <= 0) {
     return (
-      <div className="text-red-600 font-semibold text-lg">
-        Auction Ended
-      </div>
+      <div className="text-red-600 font-semibold text-lg">Auction Ended</div>
     );
   }
 
@@ -105,9 +95,7 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
           isClosingSoon ? "text-red-600" : "text-foreground"
         }`}
       >
-        Ends in:{" "}
-        {hours > 0 && `${hours}h `}
-        {minutes}m {seconds}s
+        Ends in: {hours > 0 && `${hours}h `}{minutes}m {seconds}s
       </div>
     </div>
   );

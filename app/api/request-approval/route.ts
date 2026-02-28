@@ -1,11 +1,11 @@
-import { createClient } from "@/utils/supabase/server-client";
+// app/api/request-approval/route.ts
+
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
+
 export async function POST() {
   try {
-    const cookieStore = await cookies();
-
-    const supabase = await createClient();
+    const supabase = createRouteHandlerClient();
 
     // 1. Auth check
     const {
@@ -27,7 +27,6 @@ export async function POST() {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
-    // 3. Block banned users
     if (profile.banned) {
       return NextResponse.json(
         { error: "Your account is banned." },
@@ -35,7 +34,6 @@ export async function POST() {
       );
     }
 
-    // 4. Prevent re-requesting approval
     if (profile.approved) {
       return NextResponse.json(
         { error: "Your account is already approved." },
@@ -43,7 +41,6 @@ export async function POST() {
       );
     }
 
-    // 5. Validate required fields
     const missing =
       !profile.full_name ||
       !profile.username ||
@@ -58,7 +55,7 @@ export async function POST() {
       );
     }
 
-    // 6. Mark as pending approval
+    // 3. Mark as pending approval
     const { error: updateError } = await supabase
       .from("user_profiles")
       .update({ approved: false })

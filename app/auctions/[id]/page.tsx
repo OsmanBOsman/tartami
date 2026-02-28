@@ -1,7 +1,8 @@
 // app/auctions/[id]/page.tsx
 // Public Auction Page – Tartami increments, clean CTA, production-ready
 
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import Link from "next/link";
 
 // -----------------------------
@@ -54,9 +55,10 @@ export default async function AuctionEventPage({
 }: {
   params: { id: string };
 }) {
-  const eventId = params.id;
+  
+  const supabase = await createSupabaseServerClient();
 
-  const supabase = await createClient();
+  const eventId = params.id;
 
   // Fetch event
   const { data: event } = await supabase

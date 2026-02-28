@@ -1,9 +1,9 @@
 // app/api/admin/auctions/create/route.ts
 
-import { createClient } from "@/utils/supabase/server-client";
 import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
-// ⭐ Shared auth + admin check
+// Shared admin check
 async function getAdmin(supabase: any) {
   const {
     data: { user },
@@ -25,21 +25,16 @@ async function getAdmin(supabase: any) {
   return { user, profile };
 }
 
-// ⭐ POST → Create new auction (always draft)
 export async function POST(req: NextRequest) {
-  // Unified SSR Supabase client
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
-  // Auth
   const admin = await getAdmin(supabase);
   if ("error" in admin)
     return NextResponse.json({ error: admin.error }, { status: admin.status });
 
-  // Parse body
   const body = await req.json();
   const { name, description, starts_at, ends_at, images } = body;
 
-  // Validate required fields
   if (!name || !starts_at || !ends_at) {
     return NextResponse.json(
       { error: "Missing required fields: name, starts_at, ends_at" },
@@ -47,7 +42,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Insert event
   const { data, error: insertError } = await supabase
     .from("auction_events")
     .insert({
@@ -56,7 +50,7 @@ export async function POST(req: NextRequest) {
       starts_at,
       ends_at,
       images: images || [],
-      status: "draft", // ⭐ always draft
+      status: "draft",
     })
     .select()
     .single();

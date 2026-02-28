@@ -1,10 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import ProfileForm from "./profile-form";
 
 export default async function ProfilePage() {
-  const supabase = await createClient();
+  
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },

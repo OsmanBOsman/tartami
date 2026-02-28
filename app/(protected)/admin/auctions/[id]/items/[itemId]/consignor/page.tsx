@@ -1,12 +1,13 @@
 // app/(protected)/admin/auctions/[id]/items/[itemId]/consignor/page.tsx
 
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 
 export default async function AssignConsignorPage({ params }: any) {
   const { id, itemId } = params;
 
-  // Unified SSR Supabase client
-  const supabase = await createClient();
+  
+  const supabase = await createSupabaseServerClient();
 
   const { data: item } = await supabase
     .from("auction_items")

@@ -1,19 +1,23 @@
-import { ItemBiddingPanel } from './ItemBiddingPanel'
-import { BidHistoryPanel } from './BidHistoryPanel'
-import { createClient } from '@/utils/supabase/server-client'
+// app/auctions/items/[itemId]/page.tsx
+
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { ItemBiddingPanel } from "./ItemBiddingPanel";
+import { BidHistoryPanel } from "./BidHistoryPanel";
 
 export default async function ItemPage({
   params,
 }: {
-  params: { itemId: string; slug: string }
+  params: { itemId: string; slug: string };
 }) {
-  const { itemId } = params; // ✅ SAFE in server components
+  const { itemId } = params;
 
-  const supabase = await createClient()
+  
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   return (
     <div>
@@ -23,5 +27,5 @@ export default async function ItemPage({
 
       <BidHistoryPanel itemId={itemId} />
     </div>
-  )
+  );
 }

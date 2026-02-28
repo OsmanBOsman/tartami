@@ -1,7 +1,8 @@
 // app/auctions/[id]/items/[itemId]/page.tsx
 // Public Item Page – Tartami premium item detail view
 
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import Link from "next/link";
 
 // -----------------------------
@@ -54,10 +55,11 @@ export default async function PublicItemPage({
 }: {
   params: { id: string; itemId: string };
 }) {
+  
+  const supabase = await createSupabaseServerClient();
+
   const eventId = params.id;
   const itemId = params.itemId;
-
-  const supabase = await createClient();
 
   // Fetch event
   const { data: event } = await supabase

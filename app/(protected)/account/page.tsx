@@ -1,9 +1,11 @@
 // app/(protected)/account/page.tsx
-import { createClient } from "@/utils/supabase/server-client";
+
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 
 export default async function AccountPage() {
-  // Use the shared, correct SSR client
-  const supabase = await createClient();
+  
+  const supabase = await createSupabaseServerClient();
 
   // 1. Get authenticated user
   const {

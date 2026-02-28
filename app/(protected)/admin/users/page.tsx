@@ -1,8 +1,8 @@
 // app/(protected)/admin/users/page.tsx
-import { createClient } from "@/utils/supabase/server-client";
+import { createClient } from "@/utils/supabase/create-server-client";
 
 export default async function AdminUsersPage() {
-  const supabase = await createClient();
+  const supabase = createSupabaseServerClient();
 
   const { data: users } = await supabase
     .from("user_profiles")

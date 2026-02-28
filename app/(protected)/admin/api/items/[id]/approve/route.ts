@@ -1,18 +1,16 @@
 // app/(protected)/admin/api/items/[id]/approve/route.ts
-import { NextResponse } from "next/server";
-import { createClient } from "@/utils/supabase/server-client";
 
-// Next.js 16 route handler signature
+import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
+
 export async function POST(
-  req: Request,
+  req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
 
-  // Unified SSR Supabase client
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
-  // Approve the item
   await supabase
     .from("auction_items")
     .update({ status: "approved" })

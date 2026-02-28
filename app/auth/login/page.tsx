@@ -1,4 +1,4 @@
-import { createClient } from "@/utils/supabase/server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,7 @@ export default function LoginPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const cookieStore = cookies();
-    const supabase = await createClient();
+    const supabase = createRouteHandlerClient();
 
     const { error } = await supabase.auth.signInWithPassword({
       email,

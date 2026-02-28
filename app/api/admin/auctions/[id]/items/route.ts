@@ -1,7 +1,7 @@
 // app/api/admin/auctions/[id]/items/route.ts
 
-import { createClient } from "@/utils/supabase/server-client";
 import { NextRequest, NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
 // ⭐ Shared auth + admin check
 async function getAdmin(supabase: any) {
@@ -43,7 +43,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)
@@ -87,7 +87,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)
@@ -125,7 +125,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)
@@ -163,7 +163,7 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
-  const supabase = await createClient();
+  const supabase = createRouteHandlerClient();
 
   const admin = await getAdmin(supabase);
   if ("error" in admin)
@@ -179,7 +179,6 @@ export async function PUT(
     );
   }
 
-  // Update each item with new order index
   for (let i = 0; i < order.length; i++) {
     await supabase
       .from("auction_items")

@@ -58,12 +58,12 @@ function transformFile(filePath) {
     );
   }
 
-  // Replace createServerClient(...) with await createClient()
+  // Replace createServerClient(...) with createSupabaseServerClient()
   code = code.replace(
     /const\s+supabase\s*=\s*createServerClient\([\s\S]*?\);/,
     () => {
       changed = true;
-      return `const supabase = await createClient();`;
+      return `const supabase = createSupabaseServerClient();`;
     }
   );
 

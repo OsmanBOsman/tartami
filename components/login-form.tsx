@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,7 +28,7 @@ export function LoginForm({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const supabase = createClient();
+    const supabase = createSupabaseServerClient();
     setIsLoading(true);
     setError(null);
 

@@ -1,7 +1,8 @@
 // app/auctions/page.tsx
 // Public Auctions Home Page – Tartami Auction Calendar
 
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import Link from "next/link";
 
 // -----------------------------
@@ -27,7 +28,8 @@ function formatDate(d: string | null) {
 // Page Component
 // -----------------------------
 export default async function AuctionsHomePage() {
-  const supabase = await createClient();
+  
+  const supabase = await createSupabaseServerClient();
 
   // Fetch all published auctions
   const { data: events } = await supabase
@@ -45,7 +47,6 @@ export default async function AuctionsHomePage() {
     .eq("status", "published")
     .order("starts_at", { ascending: true });
 
-  // Filter: ONLY Scheduled + Live
   const visibleEvents = (events || []).filter((event: any) => {
     const status = computeStatus(event);
     return status === "Upcoming" || status === "Live";
@@ -73,10 +74,8 @@ export default async function AuctionsHomePage() {
         {visibleEvents.map((event: any) => {
           const status = computeStatus(event);
 
-          // Find first approved item
           const firstItem = event.items?.find((i: any) => i.status === "approved");
 
-          // Primary image from first approved item
           const primaryImage =
             firstItem?.images?.find((img: any) => img.is_primary) ||
             firstItem?.images?.[0] ||

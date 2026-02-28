@@ -1,5 +1,5 @@
 // app/(protected)/admin/users/[id]/page.tsx
-import { createClient } from "@/utils/supabase/server-client";
+import { createClient } from "@/utils/supabase/create-server-client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -8,7 +8,7 @@ export default async function AdminUserDetailPage({
 }: {
   params: { id: string };
 }) {
-  const supabase = await createClient();
+  const supabase = createSupabaseServerClient();
 
   // Fetch user profile
   const { data: user, error } = await supabase
@@ -24,7 +24,7 @@ export default async function AdminUserDetailPage({
   // Server actions
   async function updateField(formData: FormData) {
     "use server";
-    const supabase = await createClient();
+    const supabase = createSupabaseServerClient();
 
     const updates = {
       full_name: formData.get("full_name"),
@@ -42,7 +42,7 @@ export default async function AdminUserDetailPage({
 
   async function toggleApproval() {
     "use server";
-    const supabase = await createClient();
+    const supabase = createSupabaseServerClient();
 
     await supabase
       .from("user_profiles")
@@ -54,7 +54,7 @@ export default async function AdminUserDetailPage({
 
   async function toggleTrusted() {
     "use server";
-    const supabase = await createClient();
+    const supabase = createSupabaseServerClient();
 
     await supabase
       .from("user_profiles")
@@ -66,7 +66,7 @@ export default async function AdminUserDetailPage({
 
   async function toggleBanned() {
     "use server";
-    const supabase = await createClient();
+    const supabase = createSupabaseServerClient();
 
     await supabase
       .from("user_profiles")

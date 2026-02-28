@@ -1,6 +1,8 @@
-import { createClient } from "@/utils/supabase/server-client";
+// app/api/bids/route.ts
+
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
+
 // -----------------------------
 // Tartami increments
 // -----------------------------
@@ -27,8 +29,8 @@ function getIncrement(amount: number) {
 // -----------------------------
 // Soft-close settings
 // -----------------------------
-const SOFT_CLOSE_WINDOW_MS = 2 * 60 * 1000; // last 2 minutes
-const SOFT_CLOSE_EXTENSION_MS = 2 * 60 * 1000; // extend by 2 minutes
+const SOFT_CLOSE_WINDOW_MS = 2 * 60 * 1000;
+const SOFT_CLOSE_EXTENSION_MS = 2 * 60 * 1000;
 
 export async function POST(req: Request) {
   try {
@@ -39,9 +41,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing item_id" }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-
-    const supabase = await createClient();
+    const supabase = createRouteHandlerClient();
 
     // 1. Auth check
     const {
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // 2. Fetch user profile (approval + ban checks)
+    // 2. Fetch profile
     const { data: profile } = await supabase
       .from("user_profiles")
       .select("approved, banned")
@@ -60,10 +60,7 @@ export async function POST(req: Request) {
       .single();
 
     if (!profile) {
-      return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     if (profile.banned) {
@@ -91,7 +88,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
-    // Prevent bidding on your own item
     if (item.seller_id === user.id) {
       return NextResponse.json(
         { error: "You cannot bid on your own item" },
@@ -117,7 +113,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 4. Fetch latest bid
+    // 4. Latest bid
     const { data: latestBid } = await supabase
       .from("bids")
       .select("*")
@@ -147,9 +143,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // -----------------------------
-    // 6. Soft-close extension logic
-    // -----------------------------
+    // 6. Soft-close extension
     const msRemaining = end.getTime() - now.getTime();
 
     if (msRemaining <= SOFT_CLOSE_WINDOW_MS) {

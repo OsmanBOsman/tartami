@@ -1,10 +1,14 @@
+// components/auth-button.tsx
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/utils/supabase/server-client";
+import { cookies } from "next/headers";
+import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
 import { LogoutButton } from "./logout-button";
 
 export async function AuthButton() {
-  const supabase = await createClient();
+  
+  const supabase = await createSupabaseServerClient();
 
   const {
     data: { user },

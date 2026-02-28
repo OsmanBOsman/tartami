@@ -1,7 +1,7 @@
 'use client'
 
 import { useRealtimeItemBidding } from './useRealtimeItemBidding'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 
 export function ItemBiddingPanel({
   itemId,
@@ -10,7 +10,7 @@ export function ItemBiddingPanel({
   itemId: string
   userId?: string
 }) {
-  const supabase = createClient()
+  const supabase = createSupabaseServerClient()
   const { state, loading, refresh } = useRealtimeItemBidding(itemId, userId)
 
   if (!userId) return <div>Please sign in to bid.</div>
