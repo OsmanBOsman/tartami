@@ -1,24 +1,7 @@
 // app/api/admin/auctions/[id]/items/route.ts
 
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-
-async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-}
 
 // ⭐ Shared auth + admin check
 async function getAdmin(supabase: any) {
@@ -71,7 +54,6 @@ export async function POST(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
   const body = await req.json();
-
   const { name, description, starting_bid, images } = body;
 
   if (!name || !starting_bid) {

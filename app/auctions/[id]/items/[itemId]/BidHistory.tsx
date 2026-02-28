@@ -20,15 +20,12 @@ type BidHistoryProps = {
 // -----------------------------
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
 export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
   const [bids, setBids] = useState<Bid[]>(initialBids);
 
-  // -----------------------------
-  // Realtime subscription
-  // -----------------------------
   useEffect(() => {
     const channel = supabase
       .channel(`bids-history:${itemId}`)
@@ -44,9 +41,7 @@ export default function BidHistory({ itemId, initialBids }: BidHistoryProps) {
           const newBid = payload.new as Bid;
 
           setBids((prev) => {
-            // Avoid duplicates
             if (prev.some((b) => b.id === newBid.id)) return prev;
-
             return [newBid, ...prev];
           });
         }

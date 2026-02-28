@@ -1,24 +1,14 @@
+import { createClient } from "@/lib/supabase/server";
 // app/(protected)/admin/layout.tsx
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
 import AdminSidebar from "./components/AdminSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
-  // Get user
+  // 1. Get authenticated user
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -34,16 +24,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     );
   }
 
-  // Fetch admin flag from user_profiles
+  // 2. Fetch admin flag from user_profiles
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("is_admin")
     .eq("id", user.id)
     .single();
 
-  const isAdmin = profile?.is_admin === true;
-
-  if (!isAdmin) {
+  if (!profile?.is_admin) {
     return (
       <div className="p-6">
         <h1 className="text-xl font-semibold">Access Denied</h1>

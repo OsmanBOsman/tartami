@@ -1,29 +1,8 @@
 // app/page.tsx
 // Tartami Public Home Page – premium Somali-rooted auction landing
 
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-
-// -----------------------------
-// Supabase SSR client
-// -----------------------------
-async function createClient() {
-  const cookieStorePromise = cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        async get(name: string) {
-          const store = await cookieStorePromise;
-          return store.get(name)?.value;
-        },
-      },
-    }
-  );
-}
 
 // -----------------------------
 // Helpers

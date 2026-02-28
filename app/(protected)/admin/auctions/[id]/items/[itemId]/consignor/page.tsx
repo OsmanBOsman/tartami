@@ -1,25 +1,11 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+// app/(protected)/admin/auctions/[id]/items/[itemId]/consignor/page.tsx
 
-async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-}
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AssignConsignorPage({ params }: any) {
-  const { id, itemId } = params; // ✅ SAFE in server components
+  const { id, itemId } = params;
 
+  // Unified SSR Supabase client
   const supabase = await createClient();
 
   const { data: item } = await supabase

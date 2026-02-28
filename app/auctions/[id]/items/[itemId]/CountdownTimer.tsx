@@ -13,7 +13,7 @@ type CountdownProps = {
 // -----------------------------
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
 export default function CountdownTimer({ eventId, initialEndTime }: CountdownProps) {
@@ -26,9 +26,6 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
 
   const [extendedFlash, setExtendedFlash] = useState(false);
 
-  // -----------------------------
-  // REALTIME END-TIME UPDATES
-  // -----------------------------
   useEffect(() => {
     const channel = supabase
       .channel(`auction-end:${eventId}`)
@@ -46,17 +43,14 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
           if (updated?.ends_at) {
             const newEnd = new Date(updated.ends_at);
 
-            // Detect extension (end time increased)
             if (newEnd.getTime() > endTime.getTime()) {
               setExtendedFlash(true);
 
-              // Optional: subtle sound
               const audio = new Audio(
                 "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA="
               );
               audio.play().catch(() => {});
 
-              // Optional: mobile vibration
               if (navigator.vibrate) navigator.vibrate(60);
 
               setTimeout(() => setExtendedFlash(false), 2000);
@@ -74,9 +68,6 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
     };
   }, [eventId, endTime]);
 
-  // -----------------------------
-  // LOCAL TICKING TIMER
-  // -----------------------------
   useEffect(() => {
     const interval = setInterval(() => {
       const diff = endTime.getTime() - Date.now();
@@ -86,9 +77,6 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
     return () => clearInterval(interval);
   }, [endTime]);
 
-  // -----------------------------
-  // FORMAT REMAINING TIME
-  // -----------------------------
   if (remaining <= 0) {
     return (
       <div className="text-red-600 font-semibold text-lg">
@@ -102,18 +90,16 @@ export default function CountdownTimer({ eventId, initialEndTime }: CountdownPro
   const minutes = Math.floor(totalSeconds / 60) % 60;
   const hours = Math.floor(totalSeconds / 3600);
 
-  const isClosingSoon = remaining < 2 * 60 * 1000; // last 2 minutes
+  const isClosingSoon = remaining < 2 * 60 * 1000;
 
   return (
     <div className="space-y-1">
-      {/* EXTENSION FLASH */}
       {extendedFlash && (
         <div className="text-green-600 font-semibold text-sm animate-pulse">
           +2 minutes extended
         </div>
       )}
 
-      {/* Countdown */}
       <div
         className={`text-lg font-semibold ${
           isClosingSoon ? "text-red-600" : "text-foreground"

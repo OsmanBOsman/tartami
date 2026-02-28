@@ -1,9 +1,9 @@
-// lib/supabase/server.ts
+// lib/supabase/route.ts
 
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-export function createClient() {
+export function createRouteHandlerClient() {
   // Force sync evaluation — prevents async module inference
   const cookieStore = (() => cookies())();
 
@@ -15,9 +15,12 @@ export function createClient() {
         get(name: string) {
           return cookieStore.get(name)?.value ?? "";
         },
-        // Server Components cannot modify cookies
-        set() {},
-        remove() {},
+        set(name: string, value: string, options: any) {
+          cookieStore.set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          cookieStore.set(name, "", { ...options, maxAge: 0 });
+        },
       },
     }
   );

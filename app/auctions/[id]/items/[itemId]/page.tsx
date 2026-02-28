@@ -1,29 +1,8 @@
 // app/auctions/[id]/items/[itemId]/page.tsx
-// Public Item Page – Tartami premium item detail view (no bidding engine yet)
+// Public Item Page – Tartami premium item detail view
 
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-
-// -----------------------------
-// Supabase server client
-// -----------------------------
-async function createClient() {
-  const cookieStorePromise = cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        async get(name: string) {
-          const store = await cookieStorePromise;
-          return store.get(name)?.value;
-        },
-      },
-    }
-  );
-}
 
 // -----------------------------
 // Tartami Increment Table
@@ -70,8 +49,11 @@ function formatDate(d: string | null) {
 // -----------------------------
 // Page Component
 // -----------------------------
-export default async function PublicItemPage(props: any) {
-  const params = await props.params;
+export default async function PublicItemPage({
+  params,
+}: {
+  params: { id: string; itemId: string };
+}) {
   const eventId = params.id;
   const itemId = params.itemId;
 
@@ -117,7 +99,9 @@ export default async function PublicItemPage(props: any) {
     );
   }
 
-  const primary = item.images?.find((img: any) => img.is_primary) || item.images?.[0];
+  const primary =
+    item.images?.find((img: any) => img.is_primary) || item.images?.[0];
+
   const currentPrice = Number(item.current_bid ?? item.starting_bid);
   const nextBid = getNextBid(currentPrice);
 
@@ -133,9 +117,7 @@ export default async function PublicItemPage(props: any) {
           {event.name}
         </Link>{" "}
         /{" "}
-        <span className="text-foreground font-medium">
-          {item.name}
-        </span>
+        <span className="text-foreground font-medium">{item.name}</span>
       </div>
 
       {/* Layout */}

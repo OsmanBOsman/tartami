@@ -3,6 +3,10 @@
 import { useState } from "react";
 
 export default function ProfileForm({ profile }: { profile: any }) {
+  const isAdmin = profile?.is_admin === true;
+  const isApproved = profile?.approved === true;
+  const isBanned = profile?.banned === true;
+
   const [form, setForm] = useState({
     full_name: profile?.full_name || "",
     username: profile?.username || "",
@@ -12,9 +16,6 @@ export default function ProfileForm({ profile }: { profile: any }) {
     country: profile?.country || "",
     avatar_url: profile?.avatar_url || "",
   });
-
-  const approved = profile?.approved;
-  const banned = profile?.banned;
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -29,12 +30,7 @@ export default function ProfileForm({ profile }: { profile: any }) {
       body: JSON.stringify(form),
     });
 
-    if (res.ok) {
-      setMessage("Profile updated successfully.");
-    } else {
-      setMessage("Something went wrong.");
-    }
-
+    setMessage(res.ok ? "Profile updated successfully." : "Something went wrong.");
     setLoading(false);
   }
 
@@ -42,15 +38,13 @@ export default function ProfileForm({ profile }: { profile: any }) {
     setLoading(true);
     setMessage("");
 
-    const res = await fetch("/api/request-approval", {
-      method: "POST",
-    });
+    const res = await fetch("/api/request-approval", { method: "POST" });
 
-    if (res.ok) {
-      setMessage("Approval requested. Admin will review your profile.");
-    } else {
-      setMessage("Failed to request approval.");
-    }
+    setMessage(
+      res.ok
+        ? "Approval requested. Admin will review your profile."
+        : "Failed to request approval."
+    );
 
     setLoading(false);
   }
@@ -64,13 +58,15 @@ export default function ProfileForm({ profile }: { profile: any }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* STATUS */}
+      {/* STATUS BOX */}
       <div className="p-3 rounded bg-gray-100 border">
-        {banned ? (
-          <p className="text-red-600 font-semibold">
-            Your account is banned.
+        {isAdmin ? (
+          <p className="text-blue-700 font-semibold">
+            Admin Account — You have full administrative access.
           </p>
-        ) : approved ? (
+        ) : isBanned ? (
+          <p className="text-red-600 font-semibold">Your account is banned.</p>
+        ) : isApproved ? (
           <p className="text-green-600 font-semibold">
             Your account is approved to bid.
           </p>
@@ -83,9 +79,9 @@ export default function ProfileForm({ profile }: { profile: any }) {
 
       {/* FORM FIELDS */}
       {[
-        { key: "full_name", label: "Full Name", locked: approved },
+        { key: "full_name", label: "Full Name", locked: !isAdmin && isApproved },
         { key: "username", label: "Username", locked: false },
-        { key: "phone", label: "Phone Number", locked: approved },
+        { key: "phone", label: "Phone Number", locked: !isAdmin && isApproved },
         { key: "city", label: "City (Magaalo)", locked: false },
         { key: "neighborhood", label: "Neighborhood (Xaafad)", locked: false },
         { key: "country", label: "Country", locked: false },
@@ -114,18 +110,18 @@ export default function ProfileForm({ profile }: { profile: any }) {
       <button
         type="submit"
         disabled={loading}
-        className="bg-black text-white px-4 py-2 rounded"
+        className="bg-black text-white px-4 py-2 rounded w-full"
       >
         {loading ? "Saving..." : "Save Changes"}
       </button>
 
-      {/* REQUEST APPROVAL BUTTON */}
-      {!approved && !banned && (
+      {/* REQUEST APPROVAL — ONLY FOR NON-ADMINS */}
+      {!isAdmin && !isApproved && !isBanned && (
         <button
           type="button"
           onClick={requestApproval}
           disabled={!requiredFieldsFilled || loading}
-          className={`px-4 py-2 rounded border ${
+          className={`px-4 py-2 rounded border w-full ${
             requiredFieldsFilled
               ? "bg-green-600 text-white"
               : "bg-gray-300 text-gray-600 cursor-not-allowed"

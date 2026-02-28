@@ -9,7 +9,7 @@ import Link from "next/link";
 // -----------------------------
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
 );
 
 // -----------------------------
@@ -95,7 +95,6 @@ export default function ItemClient({ event, item, bids, status, nextBid, eventId
         return;
       }
 
-      // Server returns validated bid amount
       const newAmount = Number(data.amount);
 
       setCurrentBid(newAmount);

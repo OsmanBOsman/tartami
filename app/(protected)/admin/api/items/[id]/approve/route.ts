@@ -1,33 +1,15 @@
 // app/(protected)/admin/api/items/[id]/approve/route.ts
-
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-
-// Create SSR Supabase client
-async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-}
+import { createClient } from "@/lib/supabase/server";
 
 // Next.js 16 route handler signature
 export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // must await params
+  const { id } = await context.params;
 
+  // Unified SSR Supabase client
   const supabase = await createClient();
 
   // Approve the item

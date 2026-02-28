@@ -1,20 +1,9 @@
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+// app/(protected)/account/page.tsx
+import { createClient } from "@/lib/supabase/server";
 
 export default async function AccountPage() {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+  // Use the shared, correct SSR client
+  const supabase = await createClient();
 
   // 1. Get authenticated user
   const {
@@ -24,7 +13,7 @@ export default async function AccountPage() {
   // 2. Fetch profile
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("*")
+    .select("full_name, approved, is_admin")
     .eq("id", user?.id)
     .single();
 
@@ -38,6 +27,10 @@ export default async function AccountPage() {
         <p>
           <strong>Approval Status:</strong>{" "}
           {profile?.approved ? "Approved" : "Pending Approval"}
+        </p>
+        <p>
+          <strong>Admin:</strong>{" "}
+          {profile?.is_admin ? "Yes" : "No"}
         </p>
       </div>
 

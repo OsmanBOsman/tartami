@@ -1,24 +1,13 @@
+import { createClient } from "@/lib/supabase/server";
 // components/Header.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-
 export default async function Header() {
   const cookieStore = await cookies();
 
   // READ‑ONLY Supabase client for Server Components
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
   const {
     data: { user },

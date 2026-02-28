@@ -1,24 +1,7 @@
 // app/api/admin/auctions/[id]/publish/route.ts
 
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
-
-async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-}
 
 export async function POST(
   req: NextRequest,
@@ -26,6 +9,7 @@ export async function POST(
 ) {
   const { id } = await context.params;
 
+  // Unified SSR Supabase client
   const supabase = await createClient();
 
   // 1. Auth check

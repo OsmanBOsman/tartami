@@ -1,29 +1,8 @@
 // app/auctions/[id]/page.tsx
 // Public Auction Page – Tartami increments, clean CTA, production-ready
 
-import { cookies } from "next/headers";
-import { createServerClient } from "@supabase/ssr";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-
-// -----------------------------
-// Supabase server client
-// -----------------------------
-async function createClient() {
-  const cookieStorePromise = cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-    {
-      cookies: {
-        async get(name: string) {
-          const store = await cookieStorePromise;
-          return store.get(name)?.value;
-        },
-      },
-    }
-  );
-}
 
 // -----------------------------
 // Tartami Increment Table
@@ -70,8 +49,11 @@ function formatDate(d: string | null) {
 // -----------------------------
 // Page
 // -----------------------------
-export default async function AuctionEventPage(props: any) {
-  const params = await props.params;
+export default async function AuctionEventPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const eventId = params.id;
 
   const supabase = await createClient();
