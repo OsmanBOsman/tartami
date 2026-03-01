@@ -2,7 +2,7 @@
 // Public Auctions Home Page – Tartami Auction Calendar
 
 import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import Link from "next/link";
 
 // -----------------------------
@@ -29,7 +29,7 @@ function formatDate(d: string | null) {
 // -----------------------------
 export default async function AuctionsHomePage() {
   
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   // Fetch all published auctions
   const { data: events } = await supabase

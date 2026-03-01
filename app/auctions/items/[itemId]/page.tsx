@@ -1,7 +1,7 @@
 // app/auctions/items/[itemId]/page.tsx
 
 import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import { ItemBiddingPanel } from "./ItemBiddingPanel";
 import { BidHistoryPanel } from "./BidHistoryPanel";
 
@@ -13,7 +13,7 @@ export default async function ItemPage({
   const { itemId } = params;
 
   
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const {
     data: { user },

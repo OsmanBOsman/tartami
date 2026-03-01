@@ -1,5 +1,7 @@
-import { createRouteHandlerClient } from "@/utils/supabase/route-client";
+// app/auth/login/page.tsx
 import { redirect } from "next/navigation";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
+import { getSession } from "@/lib/getSession";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
@@ -9,7 +11,7 @@ export default function LoginPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const supabase = await createRouteHandlerClient(); // ⭐ FIX
+    const supabase = await createRouteHandlerClient();
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -21,6 +23,15 @@ export default function LoginPage() {
       return;
     }
 
+    // ⭐ Ensure session cookie is fully written
+    const { session } = await getSession();
+
+    if (!session) {
+      console.error("Session not ready after login");
+      return;
+    }
+
+    // ⭐ Let middleware handle redirects
     redirect("/account");
   }
 

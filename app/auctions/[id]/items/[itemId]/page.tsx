@@ -2,7 +2,7 @@
 // Public Item Page – Tartami premium item detail view
 
 import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import Link from "next/link";
 
 // -----------------------------
@@ -56,7 +56,7 @@ export default async function PublicItemPage({
   params: { id: string; itemId: string };
 }) {
   
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const eventId = params.id;
   const itemId = params.itemId;

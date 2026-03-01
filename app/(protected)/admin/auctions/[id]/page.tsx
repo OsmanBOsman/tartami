@@ -1,7 +1,7 @@
 // app/(protected)/admin/auctions/[id]/page.tsx
 
 import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import Link from "next/link";
 
 function computeStatus(event: any) {
@@ -23,7 +23,7 @@ export default async function AdminAuctionDetailPage({
   params: { id: string };
 }) {
   
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const { data: event } = await supabase
     .from("auction_events")

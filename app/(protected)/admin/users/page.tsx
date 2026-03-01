@@ -1,13 +1,25 @@
 // app/(protected)/admin/users/page.tsx
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
+
+interface UserProfile {
+  id: string;
+  full_name: string | null;
+  username: string | null;
+  phone: string | null;
+  city: string | null;
+  approved: boolean;
+  trusted: boolean;
+  banned: boolean;
+  created_at: string;
+}
 
 export default async function AdminUsersPage() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const { data: users } = await supabase
     .from("user_profiles")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }) as { data: UserProfile[] | null };
 
   return (
     <div>

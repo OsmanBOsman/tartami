@@ -2,7 +2,7 @@
 // Public Auction Page – Tartami increments, clean CTA, production-ready
 
 import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import Link from "next/link";
 
 // -----------------------------
@@ -56,7 +56,7 @@ export default async function AuctionEventPage({
   params: { id: string };
 }) {
   
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const eventId = params.id;
 

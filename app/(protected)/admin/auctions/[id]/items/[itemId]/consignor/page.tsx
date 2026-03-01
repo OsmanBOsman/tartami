@@ -1,13 +1,13 @@
 // app/(protected)/admin/auctions/[id]/items/[itemId]/consignor/page.tsx
 
 import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 
 export default async function AssignConsignorPage({ params }: any) {
   const { id, itemId } = params;
 
   
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const { data: item } = await supabase
     .from("auction_items")
@@ -17,7 +17,7 @@ export default async function AssignConsignorPage({ params }: any) {
 
   const { data: users } = await supabase
     .from("user_profiles")
-    .select("id, username")
+    .select("id, full_name, approved, banned, is_admin")
     .eq("approved", true)
     .order("username");
 

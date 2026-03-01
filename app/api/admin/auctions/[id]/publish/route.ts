@@ -38,7 +38,7 @@ export async function POST(
     );
   }
 
-  if (profile.role !== "admin") {
+  if (!profile.is_admin) {
     return NextResponse.json(
       { error: "Admin access required." },
       { status: 403 }

@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -9,7 +9,7 @@ export default function SignupPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createRouteHandlerClient();
 
     const { error } = await supabase.auth.signUp({
       email,

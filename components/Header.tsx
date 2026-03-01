@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import { logout } from "@/app/auth/logout/action";
 
 export default async function Header() {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const {
     data: { user },

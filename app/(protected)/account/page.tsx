@@ -1,57 +1,37 @@
 // app/(protected)/account/page.tsx
-
-import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { getSession } from "@/lib/getSession";
 
 export default async function AccountPage() {
-  
-  const supabase = await createSupabaseServerClient();
+  const { session, supabase } = await getSession();
 
-  // 1. Get authenticated user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (!session) {
+    // Middleware should already handle this, but this is a safe fallback
+    return <div>Not authenticated</div>;
+  }
 
-  // 2. Fetch profile
+  const user = session.user;
+
+  // Fetch profile from your "profiles" table
   const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("full_name, approved, is_admin")
-    .eq("id", user?.id)
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
     .single();
 
   return (
-    <div className="p-10 space-y-6">
-      <h1 className="text-2xl font-semibold">My Account</h1>
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold mb-4">Account</h1>
 
       <div className="space-y-2">
-        <p><strong>Email:</strong> {user?.email}</p>
-        <p><strong>Name:</strong> {profile?.full_name ?? "Not set"}</p>
-        <p>
-          <strong>Approval Status:</strong>{" "}
-          {profile?.approved ? "Approved" : "Pending Approval"}
-        </p>
-        <p>
-          <strong>Admin:</strong>{" "}
-          {profile?.is_admin ? "Yes" : "No"}
-        </p>
-      </div>
+        <p><strong>Email:</strong> {user.email}</p>
+        <p><strong>User ID:</strong> {user.id}</p>
 
-      <div className="pt-4 space-y-3">
-        <a
-          href="/account/profile"
-          className="text-blue-600 underline hover:text-blue-800"
-        >
-          Edit Profile
-        </a>
-
-        <form action="/auth/signout" method="post">
-          <button
-            type="submit"
-            className="text-red-600 underline hover:text-red-800"
-          >
-            Log Out
-          </button>
-        </form>
+        {profile && (
+          <>
+            <p><strong>Approved:</strong> {profile.approved ? "Yes" : "No"}</p>
+            <p><strong>Admin:</strong> {profile.admin ? "Yes" : "No"}</p>
+          </>
+        )}
       </div>
     </div>
   );

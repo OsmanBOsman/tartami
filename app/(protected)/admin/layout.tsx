@@ -1,16 +1,10 @@
 // app/(protected)/admin/layout.tsx
 
-import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import AdminSidebar from "./components/AdminSidebar";
 
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  
-  const supabase = await createSupabaseServerClient();
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const supabase = await createRouteHandlerClient(); // ⭐ FIXED
 
   // 1. Get authenticated user
   const {
@@ -28,7 +22,7 @@ export default async function AdminLayout({
     );
   }
 
-  // 2. Fetch admin flag from user_profiles
+  // 2. Fetch admin flag
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("is_admin")

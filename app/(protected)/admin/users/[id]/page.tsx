@@ -1,5 +1,5 @@
 // app/(protected)/admin/users/[id]/page.tsx
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -8,7 +8,7 @@ export default async function AdminUserDetailPage({
 }: {
   params: { id: string };
 }) {
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   const { data: user, error } = await supabase
     .from("user_profiles")
@@ -22,7 +22,7 @@ export default async function AdminUserDetailPage({
 
   async function updateField(formData: FormData) {
     "use server";
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createRouteHandlerClient();
 
     const updates = {
       full_name: formData.get("full_name"),
@@ -40,7 +40,7 @@ export default async function AdminUserDetailPage({
 
   async function toggleApproval() {
     "use server";
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createRouteHandlerClient();
 
     await supabase
       .from("user_profiles")
@@ -52,7 +52,7 @@ export default async function AdminUserDetailPage({
 
   async function toggleTrusted() {
     "use server";
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createRouteHandlerClient();
 
     await supabase
       .from("user_profiles")
@@ -64,7 +64,7 @@ export default async function AdminUserDetailPage({
 
   async function toggleBanned() {
     "use server";
-    const supabase = await createSupabaseServerClient();
+    const supabase = await createRouteHandlerClient();
 
     await supabase
       .from("user_profiles")

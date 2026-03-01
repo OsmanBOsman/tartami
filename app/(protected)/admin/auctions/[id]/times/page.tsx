@@ -1,7 +1,7 @@
 // app/(protected)/admin/auctions/[id]/times/page.tsx
 
 import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import Link from "next/link";
 
 export default async function TimesEditorPage({
@@ -10,7 +10,7 @@ export default async function TimesEditorPage({
   params: { id: string };
 }) {
   
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
   // Load event
   const { data: event } = await supabase

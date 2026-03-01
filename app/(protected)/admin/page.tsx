@@ -1,29 +1,37 @@
-export default function AdminHome() {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-semibold">Admin Dashboard</h1>
-  
-        <p className="text-muted-foreground">
-          Welcome to the Tartami admin panel. Choose a section from the sidebar to begin.
-        </p>
-  
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="p-4 border rounded-lg bg-white">
-            <h2 className="font-semibold text-lg">Auctions</h2>
-            <p className="text-muted-foreground text-sm">Manage auction events.</p>
-          </div>
-  
-          <div className="p-4 border rounded-lg bg-white">
-            <h2 className="font-semibold text-lg">Items</h2>
-            <p className="text-muted-foreground text-sm">Approve and manage items.</p>
-          </div>
-  
-          <div className="p-4 border rounded-lg bg-white">
-            <h2 className="font-semibold text-lg">Users</h2>
-            <p className="text-muted-foreground text-sm">View and manage user accounts.</p>
-          </div>
-        </div>
-      </div>
-    );
+// app/(protected)/admin/page.tsx
+import { getSession } from "@/lib/getSession";
+import { redirect } from "next/navigation";
+
+export default async function AdminPage() {
+  const { session, supabase } = await getSession();
+
+  if (!session) {
+    // Middleware should already handle this
+    redirect("/auth/login");
   }
-  
+
+  const user = session.user;
+
+  // Fetch profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  // If user is not admin, redirect
+  if (!profile?.admin) {
+    redirect("/account");
+  }
+
+  return (
+    <div className="p-6">
+      <h1 className="text-2xl font-semibold mb-4">Admin Dashboard</h1>
+
+      <p>Welcome, {user.email}</p>
+      <p>You have admin access.</p>
+
+      {/* Add your admin UI here */}
+    </div>
+  );
+}

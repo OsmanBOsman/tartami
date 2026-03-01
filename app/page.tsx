@@ -1,14 +1,32 @@
 // app/page.tsx
 // Tartami Public Home Page – premium Somali-rooted auction landing
 
-import { cookies } from "next/headers";
-import { createSupabaseServerClient } from "@/utils/supabase/create-server-client";
+import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import Link from "next/link";
+
+// -----------------------------
+// Types
+// -----------------------------
+interface AuctionEvent {
+  id: string;
+  title: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  status: string;
+  items?: {
+    id: string;
+    status: string;
+    images?: {
+      url: string;
+      is_primary: boolean;
+    }[];
+  }[];
+}
 
 // -----------------------------
 // Helpers
 // -----------------------------
-function computeStatus(event: any) {
+function computeStatus(event: AuctionEvent) {
   const now = new Date();
   const start = event.starts_at ? new Date(event.starts_at) : null;
   const end = event.ends_at ? new Date(event.ends_at) : null;
@@ -28,10 +46,8 @@ function formatDate(d: string | null) {
 // Page Component
 // -----------------------------
 export default async function HomePage() {
-  
-  const supabase = await createSupabaseServerClient();
+  const supabase = await createRouteHandlerClient();
 
-  // Fetch published auctions + items + images
   const { data: events } = await supabase
     .from("auction_events")
     .select(
@@ -45,7 +61,7 @@ export default async function HomePage() {
     `
     )
     .eq("status", "published")
-    .order("starts_at", { ascending: true });
+    .order("starts_at", { ascending: true }) as { data: AuctionEvent[] | null };
 
   const live = events?.filter((e) => computeStatus(e) === "Live") || [];
   const upcoming = events?.filter((e) => computeStatus(e) === "Upcoming") || [];
@@ -76,10 +92,10 @@ export default async function HomePage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">Live Auctions</h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {live.map((event: any) => {
-              const firstItem = event.items?.find((i: any) => i.status === "approved");
+            {live.map((event) => {
+              const firstItem = event.items?.find((i) => i.status === "approved");
               const primaryImage =
-                firstItem?.images?.find((img: any) => img.is_primary) ||
+                firstItem?.images?.find((img) => img.is_primary) ||
                 firstItem?.images?.[0] ||
                 null;
 
@@ -128,10 +144,10 @@ export default async function HomePage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">Upcoming Auctions</h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {upcoming.map((event: any) => {
-              const firstItem = event.items?.find((i: any) => i.status === "approved");
+            {upcoming.map((event) => {
+              const firstItem = event.items?.find((i) => i.status === "approved");
               const primaryImage =
-                firstItem?.images?.find((img: any) => img.is_primary) ||
+                firstItem?.images?.find((img) => img.is_primary) ||
                 firstItem?.images?.[0] ||
                 null;
 
@@ -180,10 +196,10 @@ export default async function HomePage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">Recently Ended</h2>
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {ended.map((event: any) => {
-              const firstItem = event.items?.find((i: any) => i.status === "approved");
+            {ended.map((event) => {
+              const firstItem = event.items?.find((i) => i.status === "approved");
               const primaryImage =
-                firstItem?.images?.find((img: any) => img.is_primary) ||
+                firstItem?.images?.find((img) => img.is_primary) ||
                 firstItem?.images?.[0] ||
                 null;
 

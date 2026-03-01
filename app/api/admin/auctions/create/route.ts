@@ -19,7 +19,7 @@ async function getAdmin(supabase: any) {
 
   if (!profile) return { error: "Profile not found", status: 404 };
   if (profile.banned) return { error: "Your account is banned.", status: 403 };
-  if (profile.role !== "admin")
+  if (!profile.is_admin)
     return { error: "Admin access required.", status: 403 };
 
   return { user, profile };

@@ -55,7 +55,7 @@ export async function POST(req: Request) {
     // 2. Fetch profile
     const { data: profile } = await supabase
       .from("user_profiles")
-      .select("approved, banned")
+      .select("id, full_name, approved, banned, is_admin")
       .eq("id", user.id)
       .single();
 
