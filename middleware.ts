@@ -1,47 +1,47 @@
 // middleware.ts
-import { NextResponse, NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { NextResponse, NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+  let res = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
-        getAll() {
-          return req.cookies.getAll();
+        get(name: string) {
+          return req.cookies.get(name)?.value;
         },
-        setAll(cookiesToSet) {
-          for (const { name, value, options } of cookiesToSet) {
-            res.cookies.set(name, value, options);
-          }
+        set(name: string, value: string, options: any) {
+          res.cookies.set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          res.cookies.delete(name);
         },
       },
     }
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const pathname = req.nextUrl.pathname;
 
-  // Public routes
   const isAuthRoute = pathname.startsWith("/auth");
-
-  // Protected routes
   const isProtected =
     pathname.startsWith("/account") || pathname.startsWith("/admin");
 
-  // If user is not logged in and tries to access protected pages
-  if (!session && isProtected) {
+  if (!user && isProtected) {
     return NextResponse.redirect(new URL("/auth/login", req.url));
   }
 
-  // If user is logged in and tries to access /auth pages
-  if (session && isAuthRoute) {
+  if (user && isAuthRoute) {
     return NextResponse.redirect(new URL("/account", req.url));
   }
 

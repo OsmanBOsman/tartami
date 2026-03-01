@@ -2,27 +2,20 @@
 
 import { createRouteHandlerClient } from "@/utils/supabase/route-client";
 import AdminSidebar from "./components/AdminSidebar";
+import { redirect } from "next/navigation";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createRouteHandlerClient(); // ⭐ FIXED
+  const supabase = await createRouteHandlerClient();
 
-  // 1. Get authenticated user
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return (
-      <div className="p-6">
-        <h1 className="text-xl font-semibold">Unauthorized</h1>
-        <p className="text-muted-foreground mt-2">
-          Please log in to access the admin dashboard.
-        </p>
-      </div>
-    );
+    redirect("/auth/login");
   }
 
-  // 2. Fetch admin flag
+  // Fetch admin flag from REAL table: user_profiles
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("is_admin")

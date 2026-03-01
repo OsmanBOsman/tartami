@@ -1,38 +1,23 @@
 // app/(protected)/account/page.tsx
 import { getSession } from "@/lib/getSession";
+import { redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
-  const { session, supabase } = await getSession();
+  const { session } = await getSession();
 
   if (!session) {
-    // Middleware should already handle this, but this is a safe fallback
-    return <div>Not authenticated</div>;
+    redirect("/auth/login");
   }
-
-  const user = session.user;
-
-  // Fetch profile from your "profiles" table
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single();
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Account</h1>
+      <h1 className="text-2xl font-semibold mb-4">My Account (debug)</h1>
 
-      <div className="space-y-2">
-        <p><strong>Email:</strong> {user.email}</p>
-        <p><strong>User ID:</strong> {user.id}</p>
-
-        {profile && (
-          <>
-            <p><strong>Approved:</strong> {profile.approved ? "Yes" : "No"}</p>
-            <p><strong>Admin:</strong> {profile.admin ? "Yes" : "No"}</p>
-          </>
-        )}
-      </div>
+      <pre className="whitespace-pre-wrap text-xs">
+        {JSON.stringify(session, null, 2)}
+      </pre>
     </div>
   );
 }
